@@ -1,0 +1,21 @@
+# env
+.env
+.env.*
+
+# python
+backend/.venv/
+__pycache__/
+*.pyc
+
+# node
+frontend/node_modules/
+frontend/dist/
+
+# local helper scripts
+*.local.ps1
+*.local.bat
+start-dev.ps1
+start-dev.bat
+
+#vscode
+.vscode
