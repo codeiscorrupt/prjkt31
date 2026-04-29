@@ -44,3 +44,68 @@ export async function fetchBackendHealth(healthUrl) {
   }
   return response.json();
 }
+
+
+// Add this to the bottom of recognitionApi.js
+export function createWSDetectionSession(wsUrl) {
+  let socket = null;
+  let pendingResolve = null;
+  let pendingReject = null;
+  let timeoutId = null;
+
+  const cleanup = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    pendingResolve = null;
+    pendingReject = null;
+  };
+
+  const connect = () => {
+    socket = new WebSocket(wsUrl);
+    socket.binaryType = 'arraybuffer'; // Optimize for image bytes
+
+    socket.onmessage = (event) => {
+      if (pendingResolve) {
+        cleanup();
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          pendingResolve(data);
+        } catch (err) {
+          pendingReject?.(err);
+        }
+      }
+    };
+
+    return new Promise((resolve, reject) => {
+      socket.onopen = resolve;
+      socket.onerror = (e) => reject(new Error('WebSocket connection failed'));
+    });
+  };
+
+  const sendFrame = async (blob) => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected');
+    }
+
+    // Convert Blob → ArrayBuffer for efficient binary transfer
+    const arrayBuffer = await blob.arrayBuffer();
+
+    return new Promise((resolve, reject) => {
+      pendingResolve = resolve;
+      pendingReject = reject;
+      timeoutId = setTimeout(() => {
+        cleanup();
+        reject(new Error('Detection timeout'));
+      }, 4000);
+
+      socket.send(arrayBuffer);
+    });
+  };
+
+  const close = () => {
+    cleanup();
+    socket?.close();
+    socket = null;
+  };
+
+  return { connect, sendFrame, close };
+}

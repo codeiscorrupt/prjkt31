@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from app.services.engines.deepface_engine import detect_primary_face
+from app.services.engines.fast_detector import detect_primary_face
 
 
 def run_person_detection(frame, timestamp: str | None = None, camera_id: str | None = None) -> dict[str, Any]:

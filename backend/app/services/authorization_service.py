@@ -36,11 +36,16 @@ def run_target_authorization(
         response = requests.post(url, headers=headers, json=payload)
         print(response)
         data = extract_from_response(response)
-        
-        student = data["etudiant"]
-        print(f"✅ Logged in as {student['nom']} {student['prenom']}")
-        msg = student['nom']
-        authorized = 1
+        print(data)
+
+        if "etudiant" in data.keys():
+            student = data.get("etudiant")
+            print(f"✅ Logged in as {student['nom']} {student['prenom']}")
+            msg = f"✅ Logged in as {student['nom']} {student['prenom']}"
+            authorized = 1
+
+        elif data.get("status") == "pending":
+            msg = data
         
     except requests.exceptions.HTTPError as e:
         error_msg = e.response.json().get("detail", "Unknown error")
@@ -66,6 +71,7 @@ def run_target_authorization(
             'email': 'N/A',
         }
 
+    print(f"authorized : {authorized}")
     return {
         'ok': True,
         'authorized': authorized,

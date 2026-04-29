@@ -27,5 +27,5 @@ def authorize_target(
         raise
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
-    except Exception as error:  # noqa: BLE001
+    except Exception as error: 
         raise HTTPException(status_code=500, detail=f'Authorization failed: {error}') from error

@@ -3,6 +3,7 @@ from collections import deque
 from typing import Dict, Tuple, Optional
 import threading
 import time
+from app.core.config import settings
 
 class FaceConsensusCache:
     def __init__(self, max_size: int = 10, threshold: int = 5, ttl_seconds: int = 15):
@@ -35,4 +36,4 @@ class FaceConsensusCache:
             return None, votes.get(user_id, 0)
 
 # Global instance (singleton)
-face_cache = FaceConsensusCache(max_size=10, threshold=5)
+face_cache = FaceConsensusCache(settings.CACHE_MAX, settings.CACH_REQUIRED)

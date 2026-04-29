@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routes import auth, etudiant, admin_db, authorize, detect
+from app.routes import auth, etudiant, admin_db, authorize, detect, websocket_detect
 import os
 
 
@@ -40,3 +40,4 @@ app.include_router(etudiant.router)
 app.include_router(admin_db.router)
 app.include_router(detect.router)
 app.include_router(authorize.router)
+app.include_router(websocket_detect.router)

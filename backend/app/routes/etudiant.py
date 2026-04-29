@@ -62,6 +62,7 @@ def register_etudiant(request: RegisterRequest, db: Session = Depends(get_db)):
 # ─── Infos normales ────────────────────────────────────-
 @router.get("/{id_etudiant}", response_model=EtudiantOut)
 def get_etudiant(id_etudiant: int, token: str, db: Session = Depends(get_db)):
+
     data = get_token_data(token)
     if int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
@@ -97,6 +98,7 @@ def get_identite(id_etudiant: int, token: str, db: Session = Depends(get_db)):
 @router.get("/{id_etudiant}/sensible/absences")
 def get_absences(id_etudiant: int, token: str, db: Session = Depends(get_db)):
     data = get_token_data(token)
+    
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
     return db.query(Absence).filter(

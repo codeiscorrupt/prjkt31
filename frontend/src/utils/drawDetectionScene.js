@@ -1,20 +1,17 @@
+// utils/drawDetectionScene.js
+
 function getContainRect(videoElement) {
   const containerWidth = videoElement.clientWidth;
   const containerHeight = videoElement.clientHeight;
   const sourceWidth = videoElement.videoWidth || containerWidth;
   const sourceHeight = videoElement.videoHeight || containerHeight;
 
-  if (!containerWidth || !containerHeight || !sourceWidth || !sourceHeight) {
-    return null;
-  }
+  if (!containerWidth || !containerHeight || !sourceWidth || !sourceHeight) return null;
 
   const sourceAspect = sourceWidth / sourceHeight;
   const containerAspect = containerWidth / containerHeight;
 
-  let renderedWidth;
-  let renderedHeight;
-  let offsetX = 0;
-  let offsetY = 0;
+  let renderedWidth, renderedHeight, offsetX = 0, offsetY = 0;
 
   if (sourceAspect > containerAspect) {
     renderedWidth = containerWidth;
@@ -26,54 +23,20 @@ function getContainRect(videoElement) {
     offsetX = (containerWidth - renderedWidth) / 2;
   }
 
-  return {
-    offsetX,
-    offsetY,
-    renderedWidth,
-    renderedHeight,
-    sourceWidth,
-    sourceHeight,
-  };
+  return { offsetX, offsetY, renderedWidth, renderedHeight, sourceWidth, sourceHeight };
 }
 
 function getVisualState(authState, authResult) {
   if (authState === 'success' && authResult?.authorized) {
-    return {
-      stroke: '#22c55e',
-      fill: 'rgba(34, 197, 94, 0.12)',
-      label: 'TARGET RECOGNIZED',
-      labelBackground: '#22c55e',
-      scan: false,
-    };
+    return { stroke: '#22c55e', fill: 'rgba(34, 197, 94, 0.12)', label: 'TARGET RECOGNIZED', labelBackground: '#22c55e', scan: false };
   }
-
   if (authState === 'denied' || (authState === 'error' && authResult)) {
-    return {
-      stroke: '#ef4444',
-      fill: 'rgba(239, 68, 68, 0.12)',
-      label: 'ACCESS DENIED',
-      labelBackground: '#ef4444',
-      scan: false,
-    };
+    return { stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.12)', label: 'ACCESS DENIED', labelBackground: '#ef4444', scan: false };
   }
-
   if (authState === 'loading') {
-    return {
-      stroke: '#f59e0b',
-      fill: 'rgba(245, 158, 11, 0.12)',
-      label: 'AUTHORIZING...',
-      labelBackground: '#f59e0b',
-      scan: true,
-    };
+    return { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.12)', label: 'AUTHORIZING...', labelBackground: '#f59e0b', scan: true };
   }
-
-  return {
-    stroke: '#38bdf8',
-    fill: 'rgba(56, 189, 248, 0.10)',
-    label: 'TRACKING TARGET',
-    labelBackground: '#38bdf8',
-    scan: true,
-  };
+  return { stroke: '#38bdf8', fill: 'rgba(56, 189, 248, 0.10)', label: 'TRACKING TARGET', labelBackground: '#38bdf8', scan: true };
 }
 
 function drawTargetBox(ctx, x, y, width, height, visualState) {
@@ -82,21 +45,10 @@ function drawTargetBox(ctx, x, y, width, height, visualState) {
   ctx.lineWidth = 3;
 
   ctx.beginPath();
-  ctx.moveTo(x, y + corner);
-  ctx.lineTo(x, y);
-  ctx.lineTo(x + corner, y);
-
-  ctx.moveTo(x + width - corner, y);
-  ctx.lineTo(x + width, y);
-  ctx.lineTo(x + width, y + corner);
-
-  ctx.moveTo(x, y + height - corner);
-  ctx.lineTo(x, y + height);
-  ctx.lineTo(x + corner, y + height);
-
-  ctx.moveTo(x + width - corner, y + height);
-  ctx.lineTo(x + width, y + height);
-  ctx.lineTo(x + width, y + height - corner);
+  ctx.moveTo(x, y + corner); ctx.lineTo(x, y); ctx.lineTo(x + corner, y);
+  ctx.moveTo(x + width - corner, y); ctx.lineTo(x + width, y); ctx.lineTo(x + width, y + corner);
+  ctx.moveTo(x, y + height - corner); ctx.lineTo(x, y + height); ctx.lineTo(x + corner, y + height);
+  ctx.moveTo(x + width - corner, y + height); ctx.lineTo(x + width, y + height); ctx.lineTo(x + width, y + height - corner);
   ctx.stroke();
 
   ctx.strokeRect(x, y, width, height);
@@ -125,7 +77,7 @@ export function drawDetectionScene({
   detections = [],
   authState = 'idle',
   authResult = null,
-  nowMs = Date.now(),
+  nowMs = performance.now(), // ✅ Use high-res timestamp for smoother animation
 }) {
   if (!canvas || !video) return;
 
@@ -136,8 +88,19 @@ export function drawDetectionScene({
   const height = video.clientHeight;
   if (!width || !height) return;
 
-  canvas.width = width;
-  canvas.height = height;
+  // 🖼️ High-DPI support & resize guard (prevents flicker & CPU thrashing)
+  const dpr = window.devicePixelRatio || 1;
+  const targetW = Math.round(width * dpr);
+  const targetH = Math.round(height * dpr);
+
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
   const rect = getContainRect(video);
@@ -162,6 +125,7 @@ export function drawDetectionScene({
     drawScanBar(ctx, x, y, boxWidth, boxHeight, nowMs, visualState.stroke);
   }
 
+  // 🏷️ Labels
   const label = visualState.label;
   ctx.font = '700 14px Arial';
   const labelWidth = ctx.measureText(label).width + 22;

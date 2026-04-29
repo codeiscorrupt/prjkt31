@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from typing import Any
-
 import cv2
 from deepface import DeepFace
 
