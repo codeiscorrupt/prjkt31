@@ -250,8 +250,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter,
 .stage-cursor {
   position: absolute;
   z-index: 28;
-  width: clamp(28px, 3vw, 46px);
-  height: clamp(40px, 4vw, 62px);
+  width: clamp(12px, 1.2vw, 20px);
+  height: clamp(18px, 1.8vw, 28px);
   transform: translate(-12%, -8%) scale(0.7);
   opacity: 0;
   pointer-events: none;

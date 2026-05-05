@@ -88,7 +88,7 @@ export function GesturePinStage({
       return;
     }
 
-    if (pin.length >= 8) return;
+    if (pin.length >= 4) return;
     onPinChange(`${pin}${key}`);
   }, [onPinChange, onPinSubmit, pin, pinBusy]);
 
