@@ -1,4 +1,3 @@
-# app/services/face_cache.py
 from collections import deque
 from typing import Dict, Tuple, Optional
 import threading

@@ -27,7 +27,7 @@ export function CameraPanel({
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <StatusBadge label="Camera" value={cameraState} />
-          <StatusBadge label="Detect" value={detectState} />
+          {/* <StatusBadge label="Detect" value={detectState} /> */}
           <StatusBadge label="Auth" value={authState} />
         </div>
       </div>

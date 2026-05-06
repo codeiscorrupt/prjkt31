@@ -34,18 +34,23 @@ def run_target_authorization(
         payload = {"face_embedding" : embedding}
 
         response = requests.post(url, headers=headers, json=payload)
-        print(response)
         data = extract_from_response(response)
-        print(data)
 
-        if "etudiant" in data.keys():
+        # Person recognized: authorized = 1
+        if "etudiant" in data.keys() and data["etudiant"]:
             student = data.get("etudiant")
             print(f"✅ Logged in as {student['nom']} {student['prenom']}")
             msg = f"✅ Logged in as {student['nom']} {student['prenom']}"
             authorized = 1
 
+        # Person not recognized yet: authorized = 0
         elif data.get("status") == "pending":
             msg = data
+
+        # Person not recognized and access not permitted: authorized = 2
+        else:
+            authorized = 2
+            msg = "Not authorized"
         
     except requests.exceptions.HTTPError as e:
         error_msg = e.response.json().get("detail", "Unknown error")
@@ -58,31 +63,34 @@ def run_target_authorization(
         print(f"❌ Network error: {e}")
         msg = "error"
 
-    if authorized:
-        message = msg,
+    if authorized == 1:
+        message = str(msg) if msg else "Authorized"
         person = student
-    else:
-        message = response if response else msg,
+
+    elif authorized == 0:
+        message = "Pending Authorization"
         person = {
             'id': 'UNKNOWN',
-            'name': 'Unknown target',
-            'department': 'N/A',
-            'role': 'Access denied',
-            'email': 'N/A',
+            'name': 'Unknown target'
         }
 
-    print(f"authorized : {authorized}")
+    else:
+        message = "Unknown User: Access Unauthorized"
+        person = {
+            'id': 'UNKNOWN',
+            'name': 'Unknown target'
+        }
+
     return {
         'ok': True,
         'authorized': authorized,
         'target_id': target_id or 'target-demo-1',
         'message': message,
         'person': person,
-        'confidence': 0.97 if authorized else 0.41,
         'meta': {
             'processing_ms': round((time.perf_counter() - start) * 1000, 2),
             'camera_id': camera_id,
             'timestamp': timestamp,
-            'frame_size': {'width': width, 'height': height},
-        },
+            'frame_size': {'width': width, 'height': height}
+        }
     }

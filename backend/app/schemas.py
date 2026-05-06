@@ -35,6 +35,9 @@ class AuthOut(BaseModel):
 class FaceAuthRequest(BaseModel):
     face_embedding: list[float]
 
+class FaceEmbedExtract(BaseModel):
+    face_embedding: Optional[list[float]] = None
+
 class FaceAuthResponse(BaseModel):
     access_token: str
     token_type: str

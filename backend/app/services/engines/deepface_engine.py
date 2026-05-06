@@ -75,7 +75,12 @@ def build_embedding(frame) -> list[float] | None:
         enforce_detection=False,
         detector_backend=DETECTOR_BACKEND,
     )
+
     rep = _first_item(representations)
+
+    if rep.get('face_confidence', 0.0) < 0.5:
+        return None
+
     if not rep:
         return None
 

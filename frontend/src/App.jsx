@@ -10,11 +10,11 @@ import { useAuthorizationFlow } from './hooks/useAuthorizationFlow.js';
 import { drawDetectionScene } from './utils/drawDetectionScene.js';
 import { fetchBackendHealth } from './services/recognitionApi.js';
 
-// ✅ NEW: Import PIN flow hook and components (MOVED TO TOP)
+// Import PIN flow hook and components (MOVED TO TOP)
 import { useAuthToPinFlow } from './hooks/useAuthToPinFlow.js';
 import { PinVerificationView, PinSuccessView } from './components/PinVerificationView.jsx';
 
-// ✅ NEW: Dashboard import (ADD THIS LINE)
+// Dashboard import (ADD THIS LINE)
 import { StudentDashboard } from './components/StudentDashboard.jsx';
 
 function buildTargetKey(detection) {
@@ -85,7 +85,7 @@ export default function App() {
   } = useAuthToPinFlow({
     authResult,
     authState,
-    pinVerifyEndpoint: APP_CONFIG.pinVerifyUrl || '/auth/pin/verify',
+    pinVerifyEndpoint: APP_CONFIG.pinVerifyUrl,
     onLog: pushLog,
   });
 
@@ -158,7 +158,7 @@ export default function App() {
     let frameHandle = 0;
     
     const render = (now) => {
-      // 🔹 NEW: Clear canvas & skip drawing if camera isn't streaming
+
       if (cameraState !== 'streaming' || !videoRef.current?.videoWidth) {
         if (overlayRef.current) {
           const ctx = overlayRef.current.getContext('2d');

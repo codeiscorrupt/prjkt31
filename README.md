@@ -1,6 +1,8 @@
 # Face Authentication 
 
-mafiya mankteb hadchi m3nkech
+pspsp
+
+admin interface can be used after launching the backend by simply opening the admin_interface.html file.
 
 ---
 
@@ -17,12 +19,6 @@ Windows:
 
 ```bash
 .venv\Scripts\activate
-```
-
-macOS / Linux:
-
-```bash
-source .venv/bin/activate
 ```
 
 Install dependencies:

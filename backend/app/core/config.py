@@ -11,9 +11,14 @@ class Settings(BaseSettings):
     ENCRYPTION: str = "argon2"
     ADMIN_API_KEYS: str
 
+
     CACHE_MAX: int = 4
     CACH_REQUIRED: int = 2
-
+    UNKNOWN_FACE_CACHE_MAX: int = 8
+    UNKNOWN_FACE_CACHE_REQ: int = 4
+    UNKNOWN_FACE_THRESHOLD: int = FACE_THRESHOLD
+    UNKNOWN_FACE_METRIC: str = FACE_METRIC
+    UNKNOWN_FACE_TTL: int = 10
 
     class Config:
         env_file = ".env"

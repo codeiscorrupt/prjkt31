@@ -6,6 +6,7 @@ from app.models import Auth, Biometrie, Etudiant
 from app.schemas import FaceAuthRequest, FaceAuthResponse, FacePendingResponse, PinVerifyRequest, PinVerifyResponse, EtudiantOut
 from app.services.dbservice import verify_pin, create_token
 from app.services.face_cache import face_cache
+from app.services.unknown_faces_cache import unknown_faces_cache
 from app.core.config import settings
 import numpy as np
 
@@ -27,7 +28,6 @@ def face_auth(  request: FaceAuthRequest,
     elif metric == "l2":
         dist_expr = Biometrie.face_embedding.l2_distance(embedding_vector)
         order_expr = dist_expr.asc()
-        print("embed compared")
     elif metric == "ip":  # Inner Product / Dot Product
         dist_expr = Biometrie.face_embedding.max_inner_product(embedding_vector)
         order_expr = dist_expr.desc()  # Higher product = better match
@@ -37,6 +37,14 @@ def face_auth(  request: FaceAuthRequest,
     # 🔍 Efficient DB-side vector search: returns best match + its computed score
     result = db.query(Biometrie, dist_expr.label("dist_score")).order_by(order_expr).first()
     if not result:
+        
+        if unknown_faces_cache.register(embedding_vector):
+            return FaceAuthResponse(
+            access_token=None,
+            token_type="Unauthorized",
+            etudiant=None
+        )
+
         return FacePendingResponse(
             status="no_match", progress=0, matches_needed=0, 
             message="Aucune correspondance trouvée"

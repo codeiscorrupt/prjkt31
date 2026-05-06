@@ -42,7 +42,11 @@ export function useAuthorizationFlow({ authorizeUrl, cameraId, captureFrameBlob,
       });
 
       setAuthResult(result);
-      setAuthState(result.authorized ? 'success' : 'denied');
+
+      const temp = result.authorized === 1 ? 'success' 
+               : result.authorized === 2 ? 'denied' 
+               : 'loading';
+      setAuthState(temp);
       onLog(result.message || 'Authorization finished.');
     } catch (error) {
       setAuthState('error');

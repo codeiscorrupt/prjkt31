@@ -77,7 +77,7 @@ export function drawDetectionScene({
   detections = [],
   authState = 'idle',
   authResult = null,
-  nowMs = performance.now(), // ✅ Use high-res timestamp for smoother animation
+  nowMs = performance.now(),
 }) {
   if (!canvas || !video) return;
 

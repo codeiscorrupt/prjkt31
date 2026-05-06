@@ -1,14 +1,16 @@
 # routers/admin.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models import Etudiant, Auth, Biometrie, Identite, Seance, Absence, Note
 from app.services.dbservice import hash_pin, verify_admin_key
+from app.services.image_decoder import decode_uploaded_image
+from app.services.engines.deepface_engine import build_embedding
 from app.schemas import (
     RegisterRequest, RegisterResponse,
     SeanceCreate, SeanceOut,
     AbsenceCreate, AbsenceOut,
-    NoteCreate, NoteOut
+    NoteCreate, NoteOut, FaceEmbedExtract
 )
 
 
@@ -108,3 +110,27 @@ def create_note(data: NoteCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(note)
     return note
+
+@router.post("/pic_to_embed", response_model=FaceEmbedExtract)
+def extract_embed(file: UploadFile = File(...)):
+
+    # Vérifier que c'est bien une image
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Fichier doit etre une image")
+
+    # Sauvegarder le fichier
+    
+    try:
+        picture = file.file.read()
+        if not picture:
+            raise HTTPException(status_code=400, detail='Uploaded image is empty.')
+
+        frame = decode_uploaded_image(picture)
+        return {"face_embedding" : build_embedding(frame)}
+    
+    except HTTPException:
+        raise
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except Exception as error: 
+        raise HTTPException(status_code=500, detail=f'Authorization failed: {error}') from error
