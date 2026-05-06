@@ -1,0 +1,6 @@
+DATABASE_URL=postgresql://postgres:admin@localhost:5432/gestion_etudiants
+SECRET_KEY = mysupersecretkey2026
+
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ADMIN_API_KEYS = admin123
