@@ -122,9 +122,10 @@ const DASHBOARD_STYLES = `
   .photo-upload-btn:hover { background: #7dd3fc !important; }
 `;
 
-export function StudentDashboard({ 
+export function StudentDashboard({
   token,           // Sensitive token from PIN verification
   studentId,       // Student ID (from authResult.person.id_etudiant)
+  pin,             // Unhashed PIN required for decrypting fields
   apiBaseUrl = '/api', // Base API URL
   onLogout,        // Callback to return to camera view
 }) {
@@ -147,7 +148,10 @@ export function StudentDashboard({
         setLoading(true);
         setError('');
 
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'X-Pin': pin
+        };
 
         // Fetch in parallel
         const [profileRes, notesRes, identiteRes, absencesRes] = await Promise.all([
@@ -199,10 +203,15 @@ export function StudentDashboard({
       }
 
       // Refresh profile to show new photo URL
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'X-Pin': pin
+      };
       const updatedProfile = await (await fetch(
-        `${apiBaseUrl}/etudiant/${studentId}?token=${encodeURIComponent(token)}`
+        `${apiBaseUrl}/etudiant/${studentId}?token=${encodeURIComponent(token)}`,
+        { headers }
       )).json();
-      
+
       setData(prev => ({ ...prev, profile: updatedProfile }));
     } catch (err) {
       setError(err.message || 'Photo upload failed');
@@ -256,8 +265,8 @@ export function StudentDashboard({
   }
 
   const profile = data.profile || {};
-  const photoUrl = profile.photo_url 
-    ? `${apiBaseUrl}${profile.photo_url}` 
+  const photoUrl = profile.photo_url
+    ? `${apiBaseUrl}${profile.photo_url}`
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.nom || 'S')}+${encodeURIComponent(profile.prenom || 'T')}&background=38bdf8&color=fff&size=128`;
 
   return (

@@ -70,7 +70,7 @@ export default function App() {
     onLog: pushLog,
   });
 
-  // ✅ NEW: Initialize PIN flow hook (INSIDE component, before return)
+  // Initialize PIN flow hook (INSIDE component, before return)
   const {
     currentView,
     pin,
@@ -129,7 +129,6 @@ export default function App() {
     }
     // Don't re-trigger auth if already on PIN screen
     if (currentView === 'pin-verification') return;
-    
     requestAuthorization({
       targetKey: currentTargetKey,
       targetId: primaryDetection.target_id,
@@ -214,6 +213,7 @@ export default function App() {
         <StudentDashboard
           token={sensitiveToken}
           studentId={student.id_etudiant || student.id}
+          pin={pin}
           apiBaseUrl={APP_CONFIG.apiBaseUrl || '/api'}
           onLogout={() => {
             resetFlow(); // Clear auth state

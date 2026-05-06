@@ -1,31 +1,37 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models import Etudiant, Identite, Note, Absence, Auth, Biometrie
 from app.schemas import EtudiantOut, RegisterRequest, RegisterResponse
-from app.core.config import settings
 from app.services.dbservice import hash_pin, get_token_data
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-import shutil, os
-import numpy as np
+from app.services.crypto_service import encrypt_field, decrypt_field
+
+import shutil, os, json
 
 router = APIRouter(prefix="/etudiant", tags=["Etudiant"])
+
 
 # ─── Register ───────────────────────────────────────────
 @router.post("/register", response_model=RegisterResponse)
 def register_etudiant(request: RegisterRequest, db: Session = Depends(get_db)):
-    existing = db.query(Etudiant).filter(Etudiant.email == request.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email deja utilise")
+
+
+    pin = request.pin  #utilisé pour chiffrement
 
     etudiant = Etudiant(
-        nom=request.nom, prenom=request.prenom, email=request.email,
-        filiere=request.filiere, date_naissance=request.date_naissance,
-        sexe=request.sexe, telephone=request.telephone, adresse=request.adresse
+        nom=request.nom,
+        prenom=request.prenom,
+        email=encrypt_field(request.email, pin),
+        filiere=request.filiere,
+        date_naissance=request.date_naissance,
+        sexe=request.sexe,
+        telephone=encrypt_field(request.telephone, pin),
+        adresse=encrypt_field(request.adresse, pin)
     )
     db.add(etudiant)
     db.flush()
 
+    #PIN hashé (comme déjà fait)
     auth = Auth(
         id_etudiant=etudiant.id_etudiant,
         role="etudiant",
@@ -33,22 +39,31 @@ def register_etudiant(request: RegisterRequest, db: Session = Depends(get_db)):
     )
     db.add(auth)
 
+    #BIOMETRIE chiffrée
     bio = Biometrie(
         id_etudiant=etudiant.id_etudiant,
         face_embedding=request.face_embedding
     )
     db.add(bio)
 
+    #IDENTITE chiffrée
     if request.cne or request.cin:
-        identite = Identite(id_etudiant=etudiant.id_etudiant, cne=request.cne, cin=request.cin)
+        identite = Identite(
+            id_etudiant=etudiant.id_etudiant,
+            cne=encrypt_field(request.cne, pin) if request.cne else None,
+            cin=encrypt_field(request.cin, pin) if request.cin else None
+        )
         db.add(identite)
 
+    #NOTES NON CHIFFRÉES
     if request.notes:
         for n in request.notes:
             note = Note(
                 id_etudiant=etudiant.id_etudiant,
-                module=n.get("module"), note=n.get("note"),
-                session=n.get("session"), annee=n.get("annee")
+                module=n.get("module"),
+                note=n.get("note"),
+                session=n.get("session"),
+                annee=n.get("annee")
             )
             db.add(note)
 
@@ -59,48 +74,81 @@ def register_etudiant(request: RegisterRequest, db: Session = Depends(get_db)):
     )
 
 
-# ─── Infos normales ────────────────────────────────────-
+# ─── Infos normales (avec déchiffrement) ─────────────────
 @router.get("/{id_etudiant}", response_model=EtudiantOut)
-def get_etudiant(id_etudiant: int, token: str, db: Session = Depends(get_db)):
+def get_etudiant(id_etudiant: int, token: str, x_pin: str = Header(..., alias="X-Pin"), db: Session = Depends(get_db)):
 
     data = get_token_data(token)
     if int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
+
     etudiant = db.query(Etudiant).filter(
         Etudiant.id_etudiant == id_etudiant
     ).first()
+
     if not etudiant:
         raise HTTPException(status_code=404, detail="Etudiant non trouve")
-    return etudiant
 
-# ─── Notes sensibles ────────────────────────────────────
+    try:
+        return {
+            "id_etudiant": etudiant.id_etudiant,
+            "nom": etudiant.nom,
+            "prenom": etudiant.prenom,
+            "email": decrypt_field(etudiant.email, x_pin),
+            "filiere": etudiant.filiere,
+            "date_naissance": etudiant.date_naissance,
+            "sexe": etudiant.sexe,
+            "telephone": decrypt_field(etudiant.telephone, x_pin),
+            "adresse": decrypt_field(etudiant.adresse, x_pin),
+            "photo_url": etudiant.photo_url
+        }
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid PIN")
+
+
+#Notes sensibles (NON chiffrées)
 @router.get("/{id_etudiant}/sensible/notes")
 def get_notes(id_etudiant: int, token: str, db: Session = Depends(get_db)):
+
     data = get_token_data(token)
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
+
     return db.query(Note).filter(Note.id_etudiant == id_etudiant).all()
 
-# ─── Identite sensible ──────────────────────────────────
+
+#Identite sensible (AVEC déchiffrement)
 @router.get("/{id_etudiant}/sensible/identite")
-def get_identite(id_etudiant: int, token: str, db: Session = Depends(get_db)):
+def get_identite(id_etudiant: int, token: str, x_pin: str = Header(..., alias="X-Pin"), db: Session = Depends(get_db)):
+
     data = get_token_data(token)
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
+
     identite = db.query(Identite).filter(
         Identite.id_etudiant == id_etudiant
     ).first()
+
     if not identite:
         raise HTTPException(status_code=404, detail="Identite non trouvee")
-    return identite
 
-# ─── Absences sensibles ─────────────────────────────────
+    try:
+        return {
+            "cne": decrypt_field(identite.cne, x_pin) if identite.cne else None,
+            "cin": decrypt_field(identite.cin, x_pin) if identite.cin else None
+        }
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid PIN")
+
+
+#Absences
 @router.get("/{id_etudiant}/sensible/absences")
 def get_absences(id_etudiant: int, token: str, db: Session = Depends(get_db)):
+
     data = get_token_data(token)
-    
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
+
     return db.query(Absence).filter(
         Absence.id_etudiant == id_etudiant
     ).all()

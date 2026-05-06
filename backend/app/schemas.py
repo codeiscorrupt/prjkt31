@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
 from datetime import date, time
 from decimal import Decimal
@@ -15,23 +15,17 @@ class EtudiantBase(BaseModel):
     adresse: Optional[str] = None
     filiere: Optional[str] = None
     photo_url: Optional[str] = None
-
-class EtudiantCreate(EtudiantBase):
-    pass
+    model_config = ConfigDict(from_attributes=True)
 
 class EtudiantOut(EtudiantBase):
     id_etudiant: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Auth ───────────────────────────────────────────────
 class AuthOut(BaseModel):
     id_auth: int
-    role: Optional[str]
-    class Config:
-        from_attributes = True
+    role: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Face ID + PIN ──────────────────────────────────────
 class FaceAuthRequest(BaseModel):
     face_embedding: list[float]
 
@@ -42,6 +36,7 @@ class FaceAuthResponse(BaseModel):
     access_token: str
     token_type: str
     etudiant: EtudiantOut
+    model_config = ConfigDict(from_attributes=True)
 
 class FacePendingResponse(BaseModel):
     status: str
@@ -56,18 +51,16 @@ class PinVerifyRequest(BaseModel):
 class PinVerifyResponse(BaseModel):
     access_token_sensible: str
     token_type: str
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Biometrie ──────────────────────────────────────────
 class BiometrieCreate(BaseModel):
     id_etudiant: int
     face_embedding: list[float]
 
 class BiometrieOut(BiometrieCreate):
     id_bio: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Identite ───────────────────────────────────────────
 class IdentiteCreate(BaseModel):
     id_etudiant: int
     cne: Optional[str] = None
@@ -75,10 +68,8 @@ class IdentiteCreate(BaseModel):
 
 class IdentiteOut(IdentiteCreate):
     id_identite: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Seance ─────────────────────────────────────────────
 class SeanceCreate(BaseModel):
     filiere: Optional[str] = None
     module: Optional[str] = None
@@ -89,10 +80,8 @@ class SeanceCreate(BaseModel):
 
 class SeanceOut(SeanceCreate):
     id_seance: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Absence ────────────────────────────────────────────
 class AbsenceCreate(BaseModel):
     id_etudiant: int
     id_seance: int
@@ -100,10 +89,8 @@ class AbsenceCreate(BaseModel):
 
 class AbsenceOut(AbsenceCreate):
     id_absence: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Note ───────────────────────────────────────────────
 class NoteCreate(BaseModel):
     id_etudiant: int
     module: Optional[str] = None
@@ -113,8 +100,8 @@ class NoteCreate(BaseModel):
 
 class NoteOut(NoteCreate):
     id_note: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 # ─── Register ───────────────────────────────────────────
 class RegisterRequest(BaseModel):
     nom: str
@@ -141,4 +128,4 @@ class RegisterRequest(BaseModel):
 class RegisterResponse(BaseModel):
     message: str
     id_etudiant: int
-
+    model_config = ConfigDict(from_attributes=True)

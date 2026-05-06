@@ -1,4 +1,3 @@
-# routers/admin.py
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from app.db.database import get_db

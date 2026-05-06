@@ -21,6 +21,7 @@ start-dev.bat
 
 #vscode
 .vscode
+.vs
 
 #pics
 backend/uploads/photos/
