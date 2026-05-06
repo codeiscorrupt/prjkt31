@@ -10,11 +10,9 @@ import shutil, os, json
 
 router = APIRouter(prefix="/etudiant", tags=["Etudiant"])
 
-
 # ─── Register ───────────────────────────────────────────
 @router.post("/register", response_model=RegisterResponse)
 def register_etudiant(request: RegisterRequest, db: Session = Depends(get_db)):
-
 
     pin = request.pin  #utilisé pour chiffrement
 

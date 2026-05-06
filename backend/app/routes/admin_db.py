@@ -5,6 +5,7 @@ from app.models import Etudiant, Auth, Biometrie, Identite, Seance, Absence, Not
 from app.services.dbservice import hash_pin, verify_admin_key
 from app.services.image_decoder import decode_uploaded_image
 from app.services.engines.deepface_engine import build_embedding
+from app.services.crypto_service import encrypt_field
 from app.schemas import (
     RegisterRequest, RegisterResponse,
     SeanceCreate, SeanceOut,
@@ -17,20 +18,23 @@ router = APIRouter(prefix="/admin", tags=["Administration"])
 
 @router.post("/register", response_model=RegisterResponse, dependencies=[Depends(verify_admin_key)])
 def admin_register_student(request: RegisterRequest, db: Session = Depends(get_db)):
-    # 1. Check for existing email
-    if db.query(Etudiant).filter(Etudiant.email == request.email).first():
-        raise HTTPException(status_code=400, detail="Email deja utilise")
+    
+    pin = request.pin  #utilisé pour chiffrement
 
-    # 2. Create Student
     etudiant = Etudiant(
-        nom=request.nom, prenom=request.prenom, email=request.email,
-        filiere=request.filiere, date_naissance=request.date_naissance,
-        sexe=request.sexe, telephone=request.telephone, adresse=request.adresse
+        nom=request.nom,
+        prenom=request.prenom,
+        email=encrypt_field(request.email, pin),
+        filiere=request.filiere,
+        date_naissance=request.date_naissance,
+        sexe=request.sexe,
+        telephone=encrypt_field(request.telephone, pin),
+        adresse=encrypt_field(request.adresse, pin)
     )
     db.add(etudiant)
-    db.flush()  # ⚠️ Crucial: generates id_etudiant so child tables can reference it
+    db.flush()
 
-    # 3. Create Authentication (PIN)
+    #PIN hashé (comme déjà fait)
     auth = Auth(
         id_etudiant=etudiant.id_etudiant,
         role="etudiant",
@@ -38,24 +42,23 @@ def admin_register_student(request: RegisterRequest, db: Session = Depends(get_d
     )
     db.add(auth)
 
-    # 4. Create Biometrics
-    # pgvector natively accepts list[float], no string conversion needed
+    #BIOMETRIE chiffrée
     bio = Biometrie(
         id_etudiant=etudiant.id_etudiant,
         face_embedding=request.face_embedding
     )
     db.add(bio)
 
-    # 5. Create Identity (if provided)
+    #IDENTITE chiffrée
     if request.cne or request.cin:
         identite = Identite(
             id_etudiant=etudiant.id_etudiant,
-            cne=request.cne,
-            cin=request.cin
+            cne=encrypt_field(request.cne, pin) if request.cne else None,
+            cin=encrypt_field(request.cin, pin) if request.cin else None
         )
         db.add(identite)
 
-    # 6. Create Initial Grades/Notes (if provided)
+    #NOTES NON CHIFFRÉES
     if request.notes:
         for n in request.notes:
             note = Note(
@@ -68,7 +71,10 @@ def admin_register_student(request: RegisterRequest, db: Session = Depends(get_d
             db.add(note)
 
     db.commit()
-    return {"message": "Etudiant enregistre avec succes", "id_etudiant": etudiant.id_etudiant}
+    return RegisterResponse(
+        message="Etudiant enregistre avec succes",
+        id_etudiant=etudiant.id_etudiant
+    )
 
 
 @router.post("/seances", response_model=SeanceOut, dependencies=[Depends(verify_admin_key)])
@@ -115,9 +121,7 @@ def extract_embed(file: UploadFile = File(...)):
 
     # Vérifier que c'est bien une image
     if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Fichier doit etre une image")
-
-    # Sauvegarder le fichier
+        raise HTTPException(status_code=400, detail="The file must be an image")
     
     try:
         picture = file.file.read()
