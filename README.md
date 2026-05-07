@@ -2,7 +2,12 @@
 
 pspsp
 
-admin interface can be used after launching the backend by simply opening the admin_interface.html file.
+admin interface can be used after launching the app via:
+
+```text
+ http://localhost:5173/admin/index.html
+```
+
 
 ---
 
