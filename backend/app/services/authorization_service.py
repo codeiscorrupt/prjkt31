@@ -36,18 +36,22 @@ def run_target_authorization(
         response = requests.post(url, headers=headers, json=payload)
         data = extract_from_response(response)
 
-        # Person recognized: authorized = 1
-        if "etudiant" in data.keys() and data["etudiant"]:
-            student = data.get("etudiant")
-            print(f"✅ Logged in as {student['nom']} {student['prenom']}")
-            msg = f"✅ Logged in as {student['nom']} {student['prenom']}"
-            authorized = 1
+        if data:
+            # Person recognized: authorized = 1
+            if "etudiant" in data.keys() and data["etudiant"]:
+                student = data.get("etudiant")
+                print(f"✅ Logged in as {student['nom']} {student['prenom']}")
+                msg = f"✅ Logged in as {student['nom']} {student['prenom']}"
+                authorized = 1
 
-        # Person not recognized yet: authorized = 0
-        elif data.get("status") == "pending":
-            msg = data
+            # Person not recognized yet: authorized = 0
+            elif data.get("status") == "pending":
+                msg = data
 
-        # Person not recognized and access not permitted: authorized = 2
+            # Person not recognized and access not permitted: authorized = 2
+            else:
+                authorized = 2
+                msg = "Not authorized"
         else:
             authorized = 2
             msg = "Not authorized"
