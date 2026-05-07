@@ -10,11 +10,11 @@ import { useAuthorizationFlow } from './hooks/useAuthorizationFlow.js';
 import { drawDetectionScene } from './utils/drawDetectionScene.js';
 import { fetchBackendHealth } from './services/recognitionApi.js';
 
-// Import PIN flow hook and components (MOVED TO TOP)
+// Import PIN flow hook and components
 import { useAuthToPinFlow } from './hooks/useAuthToPinFlow.js';
 import { PinVerificationView, PinSuccessView } from './components/PinVerificationView.jsx';
 
-// Dashboard import (ADD THIS LINE)
+// Dashboard import
 import { StudentDashboard } from './components/StudentDashboard.jsx';
 
 function buildTargetKey(detection) {
@@ -70,7 +70,6 @@ export default function App() {
     onLog: pushLog,
   });
 
-  // Initialize PIN flow hook (INSIDE component, before return)
   const {
     currentView,
     pin,
@@ -188,7 +187,7 @@ export default function App() {
 
   useEffect(() => {
     // Auto-stop camera when dashboard is shown (privacy + resource cleanup)
-    if (currentView === 'dashboard') {
+    if (currentView === 'dashboard' || currentView === 'pin-verification' || currentView === 'success') {
       stopCamera();
     }
   }, [currentView, stopCamera]);

@@ -168,17 +168,17 @@ export function PinVerificationView({
             style={STYLES.form}
             onSubmit={(e) => { e.preventDefault(); onPinSubmit(); }}
           >
-            <label style={STYLES.label}>Enter your 3-digit PIN</label>
+            <label style={STYLES.label}>Enter your 4-digit PIN</label>
             <input
               className="pin-input"
               style={STYLES.input}
               type="password"
               inputMode="numeric"
-              pattern="[0-9]{3}"
-              maxLength={3}
-              placeholder="•••"
+              pattern="[0-9]{4}"
+              maxLength={4}
+              placeholder="••••"
               value={pin}
-              onChange={(e) => onPinChange(e.target.value.replace(/\D/g, '').slice(0, 3))}
+              onChange={(e) => onPinChange(e.target.value.replace(/\D/g, '').slice(0, 4))}
               disabled={pinBusy}
               autoFocus
             />
@@ -189,7 +189,7 @@ export function PinVerificationView({
               type="submit" 
               className="pin-submit"
               style={STYLES.submitBtn}
-              disabled={pin.length !== 3 || pinBusy}
+              disabled={pin.length !== 4 || pinBusy}
             >
               {pinBusy ? 'Verifying...' : 'Verify PIN'}
             </button>
