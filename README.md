@@ -31,7 +31,7 @@ http://localhost:5173
 Admin interface can be used after launching the app via:
 
 ```text
- http://localhost:5173/admin/index.html
+ http://localhost:5173/admin.html
 ```
 ## Flow
 
