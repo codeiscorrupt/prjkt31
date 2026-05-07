@@ -1,39 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraPanel } from './components/CameraPanel.jsx';
-import { TargetSnapshotCard } from './components/TargetSnapshotCard.jsx';
-import { LogsPanel } from './components/LogsPanel.jsx';
-import { JsonPanel } from './components/JsonPanel.jsx';
+import { GesturePinStage } from './components/GesturePinStage.jsx';
+import { SecureAccessView } from './components/SecureAccessView.jsx';
 import { APP_CONFIG } from './config/appConfig.js';
 import { useCameraStream } from './hooks/useCameraStream.js';
 import { useWebSocketDetection } from './hooks/useWebSocketDetection.js';
 import { useAuthorizationFlow } from './hooks/useAuthorizationFlow.js';
+import { useAuthToPinFlow } from './hooks/useAuthToPinFlow.js';
+import { useGesturePinWebSocket } from './hooks/useGesturePinWebSocket.js';
 import { drawDetectionScene } from './utils/drawDetectionScene.js';
 import { fetchBackendHealth } from './services/recognitionApi.js';
-
-// Import PIN flow hook and components
-import { useAuthToPinFlow } from './hooks/useAuthToPinFlow.js';
-import { PinVerificationView, PinSuccessView } from './components/PinVerificationView.jsx';
-
-// Dashboard import
-import { StudentDashboard } from './components/StudentDashboard.jsx';
+import './styles/accessCamera.css';
 
 function buildTargetKey(detection) {
   if (!detection) return '';
   if (detection.target_id) return detection.target_id;
+
   const bbox = detection.bbox || {};
-  return `bbox:${Math.round(bbox.x || 0)}:${Math.round(bbox.y || 0)}:${Math.round(
-    bbox.width || 0
-  )}:${Math.round(bbox.height || 0)}`;
+  return `bbox:${Math.round(bbox.x || 0)}:${Math.round(bbox.y || 0)}:${Math.round(bbox.width || 0)}:${Math.round(bbox.height || 0)}`;
 }
 
 export default function App() {
-  const [intervalMs, setIntervalMs] = useState(APP_CONFIG.intervalMs);
   const [detectionEnabled, setDetectionEnabled] = useState(true);
   const [detections, setDetections] = useState([]);
   const [lastDetectResponse, setLastDetectResponse] = useState(null);
   const [logs, setLogs] = useState([]);
   const [health, setHealth] = useState(null);
   const [healthError, setHealthError] = useState('');
+  const [accessFlash, setAccessFlash] = useState('');
+
   const overlayRef = useRef(null);
 
   const pushLog = useCallback((message) => {
@@ -84,21 +79,19 @@ export default function App() {
   } = useAuthToPinFlow({
     authResult,
     authState,
-    pinVerifyEndpoint: APP_CONFIG.pinVerifyUrl,
+    pinVerifyEndpoint: APP_CONFIG.pinVerifyUrl || '/auth/pin/verify',
     onLog: pushLog,
   });
 
-  const handleDetectionResult = useCallback(
-    (result) => {
-      const nextDetections = Array.isArray(result.detections) ? result.detections : [];
-      setDetections(nextDetections);
-      setLastDetectResponse(result);
-      if (nextDetections.length > 0) {
-        pushLog(`Tracking ${nextDetections.length} target(s).`);
-      }
-    },
-    [pushLog]
-  );
+  const handleDetectionResult = useCallback((result) => {
+    const nextDetections = Array.isArray(result.detections) ? result.detections : [];
+    setDetections(nextDetections);
+    setLastDetectResponse(result);
+
+    if (nextDetections.length > 0) {
+      pushLog(`Pursuing ${nextDetections.length} detected target(s).`);
+    }
+  }, [pushLog]);
 
   const handleDetectionError = useCallback(
     (error) => {
@@ -108,9 +101,14 @@ export default function App() {
     [pushLog]
   );
 
+  const detectEnabledForView =
+    detectionEnabled &&
+    cameraState === 'streaming' &&
+    currentView !== 'data-dashboard';
+
   const { detectState, scanNow } = useWebSocketDetection({
     wsUrl: APP_CONFIG.wsDetectUrl,
-    enabled: detectionEnabled && cameraState === 'streaming',
+    enabled: detectEnabledForView,
     cameraId: APP_CONFIG.cameraId,
     captureFrameBlob,
     onResult: handleDetectionResult,
@@ -118,21 +116,77 @@ export default function App() {
     onLog: pushLog,
   });
 
+  const { gestureState, gestureResult } = useGesturePinWebSocket({
+    wsUrl: APP_CONFIG.gesturePinWsUrl,
+    enabled: currentView === 'pin-verification' && cameraState === 'streaming',
+    videoRef,
+    frameWidth: APP_CONFIG.gesturePinFrameWidth,
+    frameHeight: APP_CONFIG.gesturePinFrameHeight,
+    imageType: APP_CONFIG.imageType,
+    jpegQuality: APP_CONFIG.gesturePinJpegQuality,
+    fps: APP_CONFIG.gesturePinFps,
+    onLog: pushLog,
+  });
+
   const primaryDetection = detections[0] || null;
   const currentTargetKey = buildTargetKey(primaryDetection);
 
   useEffect(() => {
-    if (!primaryDetection) {
-      resetAuthorization();
-      return;
+    if (cameraState === 'idle' || cameraState === 'stopped') {
+      startCamera();
     }
-    // Don't re-trigger auth if already on PIN screen
-    if (currentView === 'pin-verification') return;
+  }, [cameraState, startCamera]);
+
+useEffect(() => {
+  if (currentView !== 'camera') return;
+  if (authState === 'pending') return;
+  if (authState === 'denied') return;
+  if (accessFlash === 'denied') return;
+  if (!primaryDetection) {
+    resetAuthorization();
+    return;
+  }
+
     requestAuthorization({
-      targetKey: currentTargetKey,
+      targetKey: `${currentTargetKey}:${Date.now()}`,
       targetId: primaryDetection.target_id,
     });
-  }, [currentTargetKey, primaryDetection, requestAuthorization, resetAuthorization, currentView]);
+}, [
+  accessFlash,
+  authState,
+  currentTargetKey,
+  currentView,
+  primaryDetection,
+  requestAuthorization,
+  resetAuthorization,
+]);
+
+  useEffect(() => {
+    if (authState === 'denied') {
+      setAccessFlash('denied');
+      setDetectionEnabled(false);
+
+      const timer = window.setTimeout(() => {
+        setAccessFlash('');
+        setDetections([]);
+        setLastDetectResponse(null);
+        resetAuthorization();
+        setDetectionEnabled(true);
+      }, 2000);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    if (authState === 'success' && authResult?.authorized) {
+      setAccessFlash('authorized');
+
+      const timer = window.setTimeout(() => {
+        setAccessFlash('');
+      }, 1000);
+
+      return () => window.clearTimeout(timer);
+    }
+  }, [authResult, authState, resetAuthorization]);
 
   useEffect(() => {
     let active = true;
@@ -176,122 +230,80 @@ export default function App() {
         authResult,
         nowMs: now,
       });
-      
+
       frameHandle = window.requestAnimationFrame(render);
     };
-    
+
     frameHandle = window.requestAnimationFrame(render);
+
     return () => window.cancelAnimationFrame(frameHandle);
-  }, [authResult, authState, detections, videoRef, cameraState]);
+  }, [authResult, authState, cameraState, detections, videoRef]);
 
+  const inPinFlow =
+    currentView === 'authorized-pause' ||
+    currentView === 'pin-verification' ||
+    currentView === 'success';
 
-  useEffect(() => {
-    // Auto-stop camera when dashboard is shown (privacy + resource cleanup)
-    if (currentView === 'dashboard' || currentView === 'pin-verification' || currentView === 'success') {
-      stopCamera();
-    }
-  }, [currentView, stopCamera]);
+  const inSecureData =
+    currentView === 'data-dashboard' &&
+    sensitiveToken &&
+    student;
 
-
-  const layoutStyle = useMemo(
-    () => ({
-      minHeight: '100vh',
-      background: 'radial-gradient(circle at top, #0f172a 0%, #020617 55%)',
-      padding: 24,
-    }),
-    []
-  );
-
-  
-// ✅ SINGLE, COMBINED RETURN STATEMENT
   return (
-    <div style={layoutStyle}>
-      
-      {/* 🔹 EARLY RETURN: If on dashboard, render ONLY the dashboard */}
-      {currentView === 'dashboard' && sensitiveToken && student ? (
-        <StudentDashboard
-          token={sensitiveToken}
-          studentId={student.id_etudiant || student.id}
-          pin={pin}
-          apiBaseUrl={APP_CONFIG.apiBaseUrl || '/api'}
-          onLogout={() => {
-            resetFlow(); // Clear auth state
-            // No need to setCurrentView here since early return handles navigation
-          }}
-        />
-      ) : (
-        /* 🔹 Otherwise, render the camera dashboard + overlays */
-        <>
-          {/* 👇 Main camera dashboard */}
-          <div style={gridStyle}>
-            <div>
-              <CameraPanel
-                videoRef={videoRef}
-                overlayRef={overlayRef}
-                cameraState={cameraState}
-                detectState={detectState}
-                authState={authState}
-                authResult={authResult}
-                hasDetection={detections.length > 0}
-                onStartCamera={startCamera}
-                onStopCamera={stopCamera}
-                onToggleDetection={() => setDetectionEnabled((previous) => !previous)}
-                detectionEnabled={detectionEnabled}
-                onScanNow={scanNow}
-              />
-              <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
-            </div>
+    <div className={`access-app view-${currentView}`}>
+      <div className="background-grid" aria-hidden="true" />
 
-            {/* <div style={{ display: 'grid', gap: 16 }}>
-              <TargetSnapshotCard detection={primaryDetection} authResult={authResult} />
-              <JsonPanel title="Last detection response" data={lastDetectResponse} emptyText="No detection response yet." />
-              <JsonPanel title="Last authorization response" data={authResult} emptyText="No authorization response yet." />
-              <JsonPanel
-                title="Client settings"
-                data={{
-                  detectUrl: APP_CONFIG.detectUrl,
-                  authorizeUrl: APP_CONFIG.authorizeUrl,
-                  healthUrl: APP_CONFIG.healthUrl,
-                  intervalMs,
-                }}
-                emptyText="No settings."
-              />
-              <LogsPanel logs={logs} />
-            </div> */}
-          </div>
-
-          {/* 👇 PIN Verification Overlay - ONLY renders when currentView matches */}
-          {currentView === 'pin-verification' && (
-            <PinVerificationView
+      <div className={`camera-anchor ${inSecureData ? 'mini-anchor' : ''}`}>
+        <CameraPanel
+          videoRef={videoRef}
+          overlayRef={overlayRef}
+          cameraState={cameraState}
+          detectState={detectState}
+          authState={authState}
+          authResult={authResult}
+          hasDetection={detections.length > 0}
+          onStartCamera={startCamera}
+          onStopCamera={stopCamera}
+          onToggleDetection={() => setDetectionEnabled((previous) => !previous)}
+          detectionEnabled={detectionEnabled}
+          onScanNow={scanNow}
+          mode={inSecureData ? 'mini' : 'full'}
+          accessFlash={accessFlash}
+        >
+          {inPinFlow && (
+            <GesturePinStage
+              active={currentView === 'pin-verification'}
               student={student}
+              authResult={authResult}
               pin={pin}
               pinBusy={pinBusy}
               pinError={pinError}
+              gestureState={gestureState}
+              gestureResult={gestureResult}
               onPinChange={setPin}
               onPinSubmit={handlePinSubmit}
               onBack={handleBackToCamera}
             />
           )}
+        </CameraPanel>
 
-          {currentView === 'success' && (
-            <PinSuccessView onContinue={resetFlow} />
-          )}
+        <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
+      </div>
 
-          {/* Optional debug: show token */}
-          {sensitiveToken && currentView !== 'dashboard' && (
-            <JsonPanel title="Sensitive Token" data={{ token: `${sensitiveToken.slice(0, 24)}...` }} />
-          )}
-        </>
+      {inSecureData && (
+        <SecureAccessView
+          token={sensitiveToken}
+          student={student}
+          pin={pin}
+          authResult={authResult}
+          apiBaseUrl={APP_CONFIG.apiBaseUrl || '/api'}
+          onLogout={() => {
+            resetFlow();
+            resetAuthorization();
+            setDetections([]);
+          }}
+        />
       )}
     </div>
   );
 }
-
-// ✅ Module-level constant (OK outside component)
-const gridStyle = {
-  maxWidth: 1480,
-  margin: '0 auto',
-  display: 'grid',
-  gridTemplateColumns: '1.45fr 0.8fr',
-  gap: 24,
-};

@@ -6,7 +6,7 @@ export function useAuthToPinFlow({
   pinVerifyEndpoint,
   onLog,
 }) {
-  const [currentView, setCurrentView] = useState('camera'); // 'camera' | 'pin-verification' | 'success'
+  const [currentView, setCurrentView] = useState('camera');
   const [pin, setPin] = useState('');
   const [pinBusy, setPinBusy] = useState(false);
   const [pinError, setPinError] = useState('');

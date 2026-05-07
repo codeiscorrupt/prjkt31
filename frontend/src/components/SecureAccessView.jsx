@@ -39,7 +39,7 @@ function MiniTable({ columns, rows, empty }) {
   );
 }
 
-export function SecureAccessView({ token, student, authResult, apiBaseUrl, onLogout }) {
+export function SecureAccessView({ token, student, pin, authResult, apiBaseUrl, onLogout }) {
   const studentId = student?.id_etudiant || student?.id;
   const [data, setData] = useState({ profile: null, notes: [], identite: null, absences: [] });
   const [loading, setLoading] = useState(Boolean(token && studentId));
@@ -53,7 +53,9 @@ export function SecureAccessView({ token, student, authResult, apiBaseUrl, onLog
       setLoading(true);
       setError('');
       try {
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = { Authorization: `Bearer ${token}` ,  
+                          'X-Pin': pin};
+
         const endpoints = [
           `${apiBaseUrl}/etudiant/${studentId}?token=${encodeURIComponent(token)}`,
           `${apiBaseUrl}/etudiant/${studentId}/sensible/notes?token=${encodeURIComponent(token)}`,
