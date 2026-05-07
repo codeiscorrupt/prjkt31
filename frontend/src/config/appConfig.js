@@ -13,6 +13,11 @@ export const APP_CONFIG = {
   cameraId: 'webcam-1',
   idealWidth: 1280,
   idealHeight: 720,
-  wsDetectUrl : 'ws://localhost:8000/ws/detect'
+  wsDetectUrl : 'ws://localhost:8000/ws/detect',
+  gesturePinWsUrl: 'ws://localhost:8000/ws/gesture-pin',
+  gesturePinFrameWidth: 416,
+  gesturePinFrameHeight: 312,
+  gesturePinJpegQuality: 0.62,
+  gesturePinFps: 18
   
 };

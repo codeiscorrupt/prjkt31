@@ -1,4 +1,3 @@
-// hooks/useAuthToPinFlow.js
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useAuthToPinFlow({
@@ -15,8 +14,8 @@ export function useAuthToPinFlow({
 
   const studentRef = useRef(null);
   const authHandledRef = useRef(false);
+  const transitionTimerRef = useRef(null);
 
-  // Keep latest values in refs to avoid stale closures
   useEffect(() => {
     if (authResult?.person) {
       studentRef.current = authResult.person;
@@ -24,19 +23,31 @@ export function useAuthToPinFlow({
   }, [authResult]);
 
   useEffect(() => {
+    window.clearTimeout(transitionTimerRef.current);
+
     if (authResult?.authorized && authState === 'success' && !authHandledRef.current) {
       authHandledRef.current = true;
-      setCurrentView('pin-verification');
-      onLog?.('✅ Face authorized. Please enter your PIN.');
+      setPin('');
+      setPinError('');
+      setCurrentView('authorized-pause');
+      onLog?.('✅ Face authorized. Gesture PIN will open.');
+
+      transitionTimerRef.current = window.setTimeout(() => {
+        setCurrentView('pin-verification');
+      }, 850);
     }
-    // Reset flag when auth result changes
+
     if (!authResult?.authorized) {
       authHandledRef.current = false;
+      window.clearTimeout(transitionTimerRef.current);
     }
+
+    return () => window.clearTimeout(transitionTimerRef.current);
   }, [authResult, authState, onLog]);
 
-  const handlePinSubmit = useCallback(async () => {
-    if (!pin.trim() || pinBusy || !studentRef.current) return;
+  const handlePinSubmit = useCallback(async (pinOverride) => {
+    const pinToVerify = String(pinOverride ?? pin).trim();
+    if (!pinToVerify || pinBusy || !studentRef.current) return;
 
     setPinBusy(true);
     setPinError('');
@@ -52,7 +63,7 @@ export function useAuthToPinFlow({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id_etudiant: Number(studentId),
-          pin: pin.trim(),
+          pin: pinToVerify,
         }),
       });
 
@@ -63,15 +74,18 @@ export function useAuthToPinFlow({
 
       const data = await response.json();
       const token = data.access_token_sensible || data.token || data;
-      
-      setSensitiveToken(token);
-      setCurrentView('dashboard'); // ✅ Changed from 'success' to 'dashboard'
-      onLog?.('✅ PIN verified. Loading dashboard...');
 
+      setSensitiveToken(token);
+      setCurrentView('success');
+      onLog?.('✅ PIN verified. Preparing secure data space...');
+
+      window.setTimeout(() => {
+        setCurrentView((view) => view === 'success' ? 'data-dashboard' : view);
+      }, 900);
     } catch (err) {
       setPinError(err.message || 'Verification failed');
       onLog?.(`❌ PIN error: ${err.message}`);
-      setPin(''); // Clear for retry
+      setPin('');
     } finally {
       setPinBusy(false);
     }
@@ -85,6 +99,7 @@ export function useAuthToPinFlow({
     setSensitiveToken('');
     studentRef.current = null;
     authHandledRef.current = false;
+    window.clearTimeout(transitionTimerRef.current);
   }, []);
 
   const handleBackToCamera = useCallback(() => {
@@ -92,15 +107,12 @@ export function useAuthToPinFlow({
   }, [resetFlow]);
 
   return {
-    // State
     currentView,
     pin,
     pinBusy,
     pinError,
     sensitiveToken,
     student: studentRef.current,
-    
-    // Actions
     setPin,
     handlePinSubmit,
     handleBackToCamera,

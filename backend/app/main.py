@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routes import auth, etudiant, admin_db, authorize, detect, websocket_detect
+from app.routes import auth, etudiant, admin_db, authorize, detect, websocket_detect, gesture_pin
 import os
 
 
@@ -41,3 +41,4 @@ app.include_router(admin_db.router)
 app.include_router(detect.router)
 app.include_router(authorize.router)
 app.include_router(websocket_detect.router)
+app.include_router(gesture_pin.router)

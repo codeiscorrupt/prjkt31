@@ -1,51 +1,21 @@
-# Face Authentication 
+# Biometric Access + Camera-first Gesture PIN
 
-pspsp
-
-admin interface can be used after launching the app via:
-
-```text
- http://localhost:5173/admin/index.html
-```
+This project keeps the existing face detection, authorization, and backend data endpoints, then adds a camera-first gesture PIN experience.
 
 
----
+This app requires Python version 3.10 or 3.11
 
-## How to run
-
-### 1) Backend
+## Run backend (Windows)
 
 ```bash
 cd backend
 python -m venv .venv
-```
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
+source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-Run the API:
-
-```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Endpoints:
-- `http://localhost:8000/health`
-- `http://localhost:8000/detect`
-- `http://localhost:8000/authorize`
-
----
-
-### 2) Frontend
+## Run frontend (Windows)
 
 ```bash
 cd frontend
@@ -58,5 +28,22 @@ Open:
 ```text
 http://localhost:5173
 ```
+Admin interface can be used after launching the app via:
 
+```text
+ http://localhost:5173/admin/index.html
+```
+## Flow
 
+```text
+full-screen camera
+→ continuous backend detection through /ws/detect
+→ red denied state or green authorized state
+→ blurred side panels + clear center + gesture PIN keyboard
+→ MediaPipe hand cursor through /ws/gesture-pin
+→ existing PIN verification route
+→ camera shrinks to left corner
+→ protected backend data fills remaining space
+```
+
+More details are in `GESTURE_PIN_README.md`.
