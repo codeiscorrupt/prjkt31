@@ -56,6 +56,10 @@ class FacePendingResponse(BaseModel):
     message: str
 
 class PinVerifyRequest(BaseModel):
+<<<<<<< HEAD
+=======
+    token: str
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
     id_etudiant: int
     pin: str
 
@@ -68,12 +72,18 @@ class BiometrieCreate(BaseModel):
     id_etudiant: int
     face_embedding: list[float]
 
+<<<<<<< HEAD
 class BiometrieOut(BaseModel):
     id_bio: int
     id_etudiant: int
 
     class Config:
         from_attributes = True
+=======
+class BiometrieOut(BiometrieCreate):
+    id_bio: int
+    model_config = ConfigDict(from_attributes=True)
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
 
 class IdentiteCreate(BaseModel):
     id_etudiant: int

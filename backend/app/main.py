@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os
 
 from fastapi import FastAPI, Request
@@ -16,11 +17,19 @@ from app.routes import (
     websocket_detect,
     gesture_pin,
 )
+=======
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from app.routes import auth, etudiant, admin_db, authorize, detect, websocket_detect, gesture_pin
+import os
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
 
 
 app = FastAPI(
     title="Biometric Access API",
     description="API pour le systeme de controle d'acces biometrique",
+<<<<<<< HEAD
     version="1.0.0",
 )
 
@@ -38,10 +47,16 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 
+=======
+    version="1.0.0"
+)
+
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
 # Dossier uploads accessible publiquement
 uploads_path = os.path.join(os.path.dirname(__file__), "..", "uploads")
 app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
+<<<<<<< HEAD
 
 # CORS securise pour frontend local + Cloudflare Tunnel
 app.add_middleware(
@@ -64,10 +79,21 @@ app.add_middleware(
 )
 
 
+=======
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
 @app.get("/")
 def root():
     return {"message": "Biometric API running"}
 
+<<<<<<< HEAD
 
 @app.get("/health")
 def health_check():
@@ -78,10 +104,24 @@ def health_check():
     }
 
 
+=======
+@app.get('/health')
+def health_check():
+    return {
+        'ok': True,
+        'service': 'face-auth-backend',
+        'message': 'Backend is running.',
+    }
+
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
 app.include_router(auth.router)
 app.include_router(etudiant.router)
 app.include_router(admin_db.router)
 app.include_router(detect.router)
 app.include_router(authorize.router)
 app.include_router(websocket_detect.router)
+<<<<<<< HEAD
 app.include_router(gesture_pin.router)
+=======
+app.include_router(gesture_pin.router)
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247

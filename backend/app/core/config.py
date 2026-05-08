@@ -4,7 +4,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str # for jwt token signing
     ALGORITHM: str = "HS256" #for JWT tokens
+<<<<<<< HEAD
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10
+=======
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+>>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
     FACE_METRIC: str = "l2"          # Options: "cosine", "l2", "ip"
     FACE_THRESHOLD: float = 10        # Distance threshold (0.15 distance ≈ 0.85 similarity)
     VECTOR_DIMENSION: int = 128
