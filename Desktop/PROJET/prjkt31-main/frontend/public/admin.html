@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin API</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #111; padding: 2rem; }
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 1.5rem; }
+  .wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; gap: 10px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #e0e0e0; }
+  .tab { padding: 8px 14px; font-size: 13px; cursor: pointer; border: none; background: none; color: #666; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: #111; border-bottom-color: #111; font-weight: 500; }
+  .panel { display: none; flex-direction: column; gap: 10px; padding-top: 12px; }
+  .panel.active { display: flex; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  label { font-size: 12px; color: #555; }
+  input, select, textarea {
+    width: 100%; font-size: 13px; padding: 7px 10px;
+    border: 1px solid #d0d0d0; border-radius: 6px;
+    background: #fff; color: #111; font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #333; outline-offset: -1px; }
+  textarea { resize: vertical; min-height: 60px; }
+  .section-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+  button.submit {
+    background: #111; color: #fff; border: none; border-radius: 6px;
+    padding: 9px 20px; font-size: 13px; font-weight: 500; cursor: pointer; align-self: flex-start;
+  }
+  button.submit:hover { background: #333; }
+  .result {
+    background: #1a1a1a; color: #e8e8e8; border-radius: 8px;
+    padding: 12px 14px; font-size: 12px; font-family: monospace;
+    white-space: pre-wrap; display: none; max-height: 200px; overflow-y: auto;
+  }
+  .result.visible { display: block; }
+  .result.ok { border-left: 3px solid #22c55e; }
+  .result.err { border-left: 3px solid #ef4444; }
+  .key-field { display: flex; flex-direction: column; gap: 4px; }
+  .base-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  button.img-btn { background: #fff; color: #111; border: 1px solid #d0d0d0; border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer; }
+  button.img-btn:hover { background: #f0f0f0; }
+  button.img-btn:disabled { opacity: 0.5; cursor: default; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Admin API</h1>
+
+  <div class="card">
+    <div class="base-row">
+      <div class="key-field">
+        <label>Base URL</label>
+        <input id="baseUrl" value="http://localhost:8000" />
+      </div>
+      <div class="key-field">
+        <label>Admin API Key (X-Admin-Key)</label>
+        <input type="password" id="apiKey" placeholder="your-secret-key" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('register', this)">POST /register</button>
+      <button class="tab" onclick="switchTab('seance', this)">POST /seances</button>
+      <button class="tab" onclick="switchTab('absence', this)">POST /absences</button>
+      <button class="tab" onclick="switchTab('note', this)">POST /notes</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="panel-register" class="panel active">
+      <div class="section-label">Student info</div>
+      <div class="row">
+        <div class="field"><label>nom *</label><input id="r-nom" placeholder="Dupont" /></div>
+        <div class="field"><label>prenom *</label><input id="r-prenom" placeholder="Jean" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>email *</label><input id="r-email" type="email" placeholder="jean@school.ma" /></div>
+        <div class="field"><label>telephone</label><input id="r-tel" placeholder="+212..." /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>filiere *</label><input id="r-filiere" placeholder="Informatique" /></div>
+        <div class="field"><label>date_naissance</label><input id="r-dob" type="date" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>sexe</label>
+          <select id="r-sexe"><option value="">—</option><option>M</option><option>F</option></select>
+        </div>
+        <div class="field"><label>adresse</label><input id="r-adresse" placeholder="Casablanca..." /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>CNE</label><input id="r-cne" placeholder="R123456789" /></div>
+        <div class="field"><label>CIN</label><input id="r-cin" placeholder="BE123456" /></div>
+      </div>
+      <div class="field"><label>PIN *</label><input id="r-pin" type="password" placeholder="4-digit PIN" maxlength="4" /></div>
+
+      <div class="section-label">Face embedding</div>
+
+      <div class="field">
+        <label>Embedding endpoint URL</label>
+        <input id="embed-url" value="http://localhost:8000/admin/pic_to_embed" />
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="img-btn" onclick="document.getElementById('r-file').click()">📁 Upload image</button>
+        <button type="button" class="img-btn" onclick="openCamera()">📷 Use camera</button>
+        <input type="file" id="r-file" accept="image/*" style="display:none" onchange="handleFile(this)" />
+      </div>
+
+      <!-- camera UI -->
+      <div id="camera-box" style="display:none; flex-direction:column; gap:8px;">
+        <video id="cam-video" autoplay playsinline style="width:100%; border-radius:6px; border:1px solid #d0d0d0; background:#000;"></video>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="img-btn" onclick="capturePhoto()">📸 Capture</button>
+          <button type="button" class="img-btn" onclick="closeCamera()">✕ Cancel</button>
+        </div>
+      </div>
+
+      <!-- preview + status -->
+      <div id="embed-preview" style="display:none; align-items:center; gap:12px;">
+        <img id="preview-img" style="width:72px; height:72px; object-fit:cover; border-radius:6px; border:1px solid #d0d0d0;" />
+        <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+          <span id="embed-status" style="font-size:12px; color:#555;">Ready to extract</span>
+          <button type="button" class="img-btn" onclick="extractEmbedding()" id="extract-btn">⚡ Extract embedding</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>face_embedding (auto-filled or paste manually) *</label>
+        <textarea id="r-embed" placeholder="[0.12, -0.34, 0.56, ...]"></textarea>
+      </div>
+      <button class="submit" onclick="doRegister()">Register student</button>
+    </div>
+
+    <!-- SEANCE -->
+    <div id="panel-seance" class="panel">
+      <div class="row">
+        <div class="field"><label>module *</label><input id="s-module" placeholder="Analyse 1" /></div>
+        <div class="field"><label>filiere</label><input id="s-filiere" placeholder="Informatique" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>date_seance</label><input id="s-date" type="date" /></div>
+        <div class="field"><label>heure_debut</label><input id="s-hdeb" type="time" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>heure_fin</label><input id="s-hfin" type="time" /></div>
+        <div class="field"><label>salle</label><input id="s-salle" placeholder="B201" /></div>
+      </div>
+      <button class="submit" onclick="doSeance()">Create seance</button>
+    </div>
+
+    <!-- ABSENCE -->
+    <div id="panel-absence" class="panel">
+      <div class="row">
+        <div class="field"><label>id_etudiant *</label><input id="a-etu" type="number" placeholder="1" /></div>
+        <div class="field"><label>id_seance *</label><input id="a-sea" type="number" placeholder="1" /></div>
+      </div>
+      <div class="field"><label>justifiee</label>
+        <select id="a-just">
+          <option value="false">Non justifiée</option>
+          <option value="true">Justifiée</option>
+        </select>
+      </div>
+      <button class="submit" onclick="doAbsence()">Record absence</button>
+    </div>
+
+    <!-- NOTE -->
+    <div id="panel-note" class="panel">
+      <div class="row">
+        <div class="field"><label>id_etudiant *</label><input id="n-etu" type="number" placeholder="1" /></div>
+        <div class="field"><label>module *</label><input id="n-mod" placeholder="Analyse 1" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>note *</label><input id="n-note" type="number" step="0.5" min="0" max="20" placeholder="14.5" /></div>
+        <div class="field"><label>session</label><input id="n-session" placeholder="S2 Normale / S3 Rattrapage" /></div>
+      </div>
+      <div class="field"><label>annee</label><input id="n-annee" placeholder="2024/2025" /></div>
+      <button class="submit" onclick="doNote()">Add note</button>
+    </div>
+
+    <div id="result" class="result"></div>
+  </div>
+</div>
+
+<script>
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+    hide();
+  }
+
+  function show(data, ok) {
+    const el = document.getElementById('result');
+    el.textContent = JSON.stringify(data, null, 2);
+    el.className = 'result visible ' + (ok ? 'ok' : 'err');
+  }
+
+  function hide() { document.getElementById('result').className = 'result'; }
+  function base() { return document.getElementById('baseUrl').value.replace(/\/$/, '') + '/admin'; }
+  function key()  { return document.getElementById('apiKey').value.trim(); }
+  function v(id)  { return document.getElementById(id).value.trim(); }
+
+  async function call(path, body) {
+    try {
+      const res = await fetch(base() + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': key() },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      show(data, res.ok);
+    } catch(e) {
+      show({ error: e.message }, false);
+    }
+  }
+
+  async function doRegister() {
+    let embed;
+    try { embed = JSON.parse(v('r-embed')); }
+    catch { return show({ error: 'face_embedding must be a valid JSON array' }, false); }
+
+    const body = {
+      nom: v('r-nom'), prenom: v('r-prenom'), email: v('r-email'),
+      filiere: v('r-filiere'), pin: v('r-pin'), face_embedding: embed,
+    };
+    if (v('r-dob'))     body.date_naissance = v('r-dob');
+    if (v('r-sexe'))    body.sexe = v('r-sexe');
+    if (v('r-tel'))     body.telephone = v('r-tel');
+    if (v('r-adresse')) body.adresse = v('r-adresse');
+    if (v('r-cne'))     body.cne = v('r-cne');
+    if (v('r-cin'))     body.cin = v('r-cin');
+    await call('/register', body);
+  }
+
+  async function doSeance() {
+    const body = { module: v('s-module') };
+    if (v('s-date'))    body.date_seance = v('s-date');
+    if (v('s-hdeb'))    body.heure_debut = v('s-hdeb');
+    if (v('s-hfin'))    body.heure_fin = v('s-hfin');
+    if (v('s-salle'))   body.salle = v('s-salle');
+    if (v('s-filiere')) body.filiere = v('s-filiere');
+    await call('/seances', body);
+  }
+
+  async function doAbsence() {
+    const body = {
+      id_etudiant: parseInt(v('a-etu')),
+      id_seance:   parseInt(v('a-sea')),
+      justifiee:   document.getElementById('a-just').value === 'true',
+    };
+    await call('/absences', body);
+  }
+
+  // ---- Camera & embedding ----
+  let capturedBlob = null;
+  let stream = null;
+
+  function showPreview(blob) {
+    capturedBlob = blob;
+    const url = URL.createObjectURL(blob);
+    document.getElementById('preview-img').src = url;
+    document.getElementById('embed-preview').style.display = 'flex';
+    document.getElementById('embed-status').textContent = 'Image ready — click Extract';
+    document.getElementById('embed-status').style.color = '#555';
+  }
+
+  function handleFile(input) {
+    if (!input.files[0]) return;
+    showPreview(input.files[0]);
+  }
+
+  async function openCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      document.getElementById('cam-video').srcObject = stream;
+      document.getElementById('camera-box').style.display = 'flex';
+    } catch(e) {
+      alert('Camera error: ' + e.message);
+    }
+  }
+
+  function capturePhoto() {
+    const video = document.getElementById('cam-video');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    closeCamera();
+    canvas.toBlob(blob => showPreview(blob), 'image/jpeg', 0.92);
+  }
+
+  function closeCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    document.getElementById('camera-box').style.display = 'none';
+  }
+
+  async function extractEmbedding() {
+    const url = document.getElementById('embed-url').value.trim();
+    if (!url) return alert('Please enter the embedding endpoint URL first.');
+    if (!capturedBlob) return alert('No image selected.');
+
+    const btn = document.getElementById('extract-btn');
+    const status = document.getElementById('embed-status');
+    btn.disabled = true;
+    status.textContent = 'Extracting...';
+    status.style.color = '#888';
+
+    try {
+      const form = new FormData();
+      form.append('file', capturedBlob, 'face.jpg');
+
+      const res = await fetch(url, { method: 'POST', body: form, headers: { 'X-API-Key': key() }});
+
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + await res.text());
+      const data = await res.json();
+
+      // Accept: array directly, or {embedding: [...]} or {face_embedding: [...]}
+      const emb = Array.isArray(data) ? data
+                : data.embedding      ? data.embedding
+                : data.face_embedding ? data.face_embedding
+                : null;
+
+      if (!emb) throw new Error('No face detected in picture : ' + JSON.stringify(data));
+
+      document.getElementById('r-embed').value = JSON.stringify(emb);
+      status.textContent = '✓ Embedding filled (' + emb.length + ' dims)';
+      status.style.color = '#16a34a';
+    } catch(e) {
+      status.textContent = '✗ ' + e.message;
+      status.style.color = '#dc2626';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  // ---- end camera & embedding ----
+
+  async function doNote() {
+    const body = {
+      id_etudiant: parseInt(v('n-etu')),
+      module:      v('n-mod'),
+      note:        parseFloat(v('n-note')),
+    };
+    if (v('n-session')) body.session = v('n-session');
+    if (v('n-annee'))   body.annee = v('n-annee');
+    await call('/notes', body);
+  }
+</script>
+</body>
+</html>
