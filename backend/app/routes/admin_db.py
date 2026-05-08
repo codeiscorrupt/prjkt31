@@ -116,7 +116,7 @@ def create_note(data: NoteCreate, db: Session = Depends(get_db)):
     db.refresh(note)
     return note
 
-@router.post("/pic_to_embed", response_model=FaceEmbedExtract)
+@router.post("/pic_to_embed", response_model=FaceEmbedExtract, dependencies=[Depends(verify_admin_key)])
 def extract_embed(file: UploadFile = File(...)):
 
     # Vérifier que c'est bien une image

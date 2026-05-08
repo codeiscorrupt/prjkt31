@@ -1,6 +1,8 @@
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from requests import Session
 from app.services.authorization_service import run_target_authorization
 from app.services.image_decoder import decode_uploaded_image
+from app.db.database import get_db
 
 router = APIRouter(tags=["authorization"])
 
@@ -10,6 +12,7 @@ def authorize_target(
     timestamp: str | None = Form(default=None),
     camera_id: str | None = Form(default=None),
     target_id: str | None = Form(default=None),
+    db: Session = Depends(get_db)
 ):
     try:
         file_bytes = file.file.read()
@@ -22,6 +25,7 @@ def authorize_target(
             timestamp=timestamp,
             camera_id=camera_id,
             target_id=target_id,
+            db=db
         )
     except HTTPException:
         raise

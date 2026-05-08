@@ -17,10 +17,21 @@ class EtudiantBase(BaseModel):
     photo_url: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
+class EtudiantMain(BaseModel):
+    nom: str
+    prenom: str
+    date_naissance: Optional[date] = None
+    sexe: Optional[str] = None
+    filiere: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
 class EtudiantOut(EtudiantBase):
     id_etudiant: int
     model_config = ConfigDict(from_attributes=True)
 
+class EtudiantMainOut(EtudiantMain):
+    id_etudiant: int
+    model_config = ConfigDict(from_attributes=True)
 class AuthOut(BaseModel):
     id_auth: int
     role: Optional[str] = None
@@ -35,7 +46,7 @@ class FaceEmbedExtract(BaseModel):
 class FaceAuthResponse(BaseModel):
     access_token: str
     token_type: str
-    etudiant: EtudiantOut
+    etudiant: EtudiantMainOut
     model_config = ConfigDict(from_attributes=True)
 
 class FacePendingResponse(BaseModel):
@@ -45,6 +56,7 @@ class FacePendingResponse(BaseModel):
     message: str
 
 class PinVerifyRequest(BaseModel):
+    token: str
     id_etudiant: int
     pin: str
 

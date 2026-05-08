@@ -202,7 +202,6 @@
   }
 
   function hide() { document.getElementById('result').className = 'result'; }
-
   function base() { return document.getElementById('baseUrl').value.replace(/\/$/, '') + '/admin'; }
   function key()  { return document.getElementById('apiKey').value.trim(); }
   function v(id)  { return document.getElementById(id).value.trim(); }
@@ -316,7 +315,8 @@
       const form = new FormData();
       form.append('file', capturedBlob, 'face.jpg');
 
-      const res = await fetch(url, { method: 'POST', body: form });
+      const res = await fetch(url, { method: 'POST', body: form, headers: { 'X-API-Key': key() }});
+
       if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + await res.text());
       const data = await res.json();
 

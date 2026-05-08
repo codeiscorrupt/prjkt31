@@ -3,12 +3,11 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from typing import Union
 from app.models import Auth, Biometrie, Etudiant
-from app.schemas import FaceAuthRequest, FaceAuthResponse, FacePendingResponse, PinVerifyRequest, PinVerifyResponse, EtudiantOut
-from app.services.dbservice import verify_pin, create_token
+from app.schemas import FaceAuthRequest, FaceAuthResponse, FacePendingResponse, PinVerifyRequest, PinVerifyResponse, EtudiantOut, EtudiantMainOut
+from app.services.dbservice import verify_pin, create_token, get_token_data
 from app.services.face_cache import face_cache
 from app.services.unknown_faces_cache import unknown_faces_cache
 from app.core.config import settings
-import numpy as np
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -66,7 +65,14 @@ def face_auth(  request: FaceAuthRequest,
         return FaceAuthResponse(
             access_token=token,
             token_type="bearer",
-            etudiant=EtudiantOut.model_validate(etudiant)
+            etudiant={
+                "nom" : EtudiantOut.model_validate(etudiant).nom,
+                "prenom": EtudiantOut.model_validate(etudiant).prenom,
+                "date_naissance": EtudiantOut.model_validate(etudiant).date_naissance,
+                "sexe": EtudiantOut.model_validate(etudiant).sexe,
+                "filiere": EtudiantOut.model_validate(etudiant).filiere,
+                "id_etudiant": EtudiantOut.model_validate(etudiant).id_etudiant
+                }
         )
 
     # ⏳ 3. Still waiting for consensus
@@ -80,6 +86,11 @@ def face_auth(  request: FaceAuthRequest,
 
 @router.post("/pin/verify", response_model=PinVerifyResponse)
 def verify_pin_access(request: PinVerifyRequest, db: Session = Depends(get_db)):
+    
+    data = get_token_data(request.token)
+    if int(data.get("sub")) != request.id_etudiant or str(data.get("role")) != "normal" :
+        raise HTTPException(status_code=403, detail="Acces refuse")
+
     auth = db.query(Auth).filter(Auth.id_etudiant == request.id_etudiant).first()
 
     if not auth or not auth.pin_hash:

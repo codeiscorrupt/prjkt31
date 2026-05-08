@@ -1,8 +1,14 @@
-import numpy as np, cv2, requests, time
-from datetime import datetime
+import requests, time
 from typing import Any
-from deepface import DeepFace
-from app.services.engines.deepface_engine import build_embedding, _resize_for_analysis, _first_item
+from app.services.engines.deepface_engine import build_embedding
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from app.models import Biometrie, Etudiant
+from app.schemas import EtudiantOut, FaceAuthResponse, FacePendingResponse
+from app.services.dbservice import create_token
+from app.services.face_cache import face_cache
+from app.services.unknown_faces_cache import unknown_faces_cache
+from app.core.config import settings
 
 
 def extract_from_response(response: requests.Response):
@@ -15,46 +21,41 @@ def run_target_authorization(
     timestamp: str | None = None,
     camera_id: str | None = None,
     target_id: str | None = None,
+    db: Session = None
 ) -> dict[str, Any]:
 
     start = time.perf_counter()
     height, width = frame.shape[:2]
     authorized = 0
-
+    token = None
     embedding = build_embedding(frame)
-
     try:
-        url = "http://localhost:8000/auth/face"
+        if embedding:
+            response = face_auth(embedding, db=db)
+            data = response.model_dump()
 
-        headers = {
-            "Content-Type": "application/json",
-            "X-Client-ID": "camera_device_abc123"
-        }
+            if data:
+                # Person recognized: authorized = 1
+                if "etudiant" in data.keys() and data["etudiant"]:
+                    student = data.get("etudiant")
+                    print(f"✅ Logged in as {student['nom']} {student['prenom']}")
+                    msg = f"✅ Logged in as {student['nom']} {student['prenom']}"
+                    token = data.get("access_token")
+                    authorized = 1
 
-        payload = {"face_embedding" : embedding}
+                # Person not recognized yet: authorized = 0
+                elif data.get("status") == "pending" or data.get("status") == "no_match":
+                    msg = data
 
-        response = requests.post(url, headers=headers, json=payload)
-        data = extract_from_response(response)
-
-        if data:
-            # Person recognized: authorized = 1
-            if "etudiant" in data.keys() and data["etudiant"]:
-                student = data.get("etudiant")
-                print(f"✅ Logged in as {student['nom']} {student['prenom']}")
-                msg = f"✅ Logged in as {student['nom']} {student['prenom']}"
-                authorized = 1
-
-            # Person not recognized yet: authorized = 0
-            elif data.get("status") == "pending":
-                msg = data
-
-            # Person not recognized and access not permitted: authorized = 2
+                # Person not recognized and access not permitted: authorized = 2
+                else:
+                    authorized = 2
+            # no embed data or corrupted response
             else:
-                authorized = 2
-                msg = "Not authorized"
+                authorized = 0
+        # no embed in the picture        
         else:
-            authorized = 2
-            msg = "Not authorized"
+            authorized = 0
         
     except requests.exceptions.HTTPError as e:
         error_msg = e.response.json().get("detail", "Unknown error")
@@ -85,8 +86,8 @@ def run_target_authorization(
             'name': 'Unknown target'
         }
 
-    return {
-        'ok': True,
+    output =   {
+        'token': token if token else None,
         'authorized': authorized,
         'target_id': target_id or 'target-demo-1',
         'message': message,
@@ -96,5 +97,71 @@ def run_target_authorization(
             'camera_id': camera_id,
             'timestamp': timestamp,
             'frame_size': {'width': width, 'height': height}
+            } 
         }
-    }
+    return output
+
+def face_auth(face_embedding: list[float], client_id: str = "client_id", db: Session = None):
+    embedding_vector = face_embedding
+    metric = settings.FACE_METRIC.lower()
+    threshold = settings.FACE_THRESHOLD
+    # Select distance expression & ordering direction based on metric
+    if metric == "cosine":
+        dist_expr = Biometrie.face_embedding.cosine_distance(embedding_vector)
+        order_expr = dist_expr.asc()  # Lower distance = better match
+    elif metric == "l2":
+        dist_expr = Biometrie.face_embedding.l2_distance(embedding_vector)
+        order_expr = dist_expr.asc()
+    elif metric == "ip":  # Inner Product / Dot Product
+        dist_expr = Biometrie.face_embedding.max_inner_product(embedding_vector)
+        order_expr = dist_expr.desc()  # Higher product = better match
+    else:
+        raise HTTPException(status_code=500, detail="Unsupported FACE_METRIC in config")
+    # 🔍 Efficient DB-side vector search: returns best match + its computed score
+    result = db.query(Biometrie, dist_expr.label("dist_score")).order_by(order_expr).first()
+    if not result:
+        if unknown_faces_cache.register(embedding_vector):
+            return FaceAuthResponse(
+            access_token=None,
+            token_type="Unauthorized",
+            etudiant=None
+        )
+
+        return FacePendingResponse(
+            status="no_match", progress=0, matches_needed=0, 
+            message="Aucune correspondance trouvée"
+        )
+    bio, score = result
+    if score > threshold:
+        return FacePendingResponse(
+            status="no_match", progress=0, matches_needed=0, 
+            message="Visage non reconnu"
+        )
+
+    # 🗳️ 2. Record in FIFO cache & check consensus
+    consensus_user, current_votes = face_cache.record(client_id, bio.id_etudiant)
+    if consensus_user:
+        # ✅ Consensus reached → issue token
+        etudiant = db.query(Etudiant).filter(Etudiant.id_etudiant == consensus_user).first()
+        token = create_token({"sub": str(etudiant.id_etudiant), "role": "normal"})
+        return FaceAuthResponse(
+            access_token=token,
+            token_type="bearer",
+            etudiant={
+                "nom" : EtudiantOut.model_validate(etudiant).nom,
+                "prenom": EtudiantOut.model_validate(etudiant).prenom,
+                "date_naissance": EtudiantOut.model_validate(etudiant).date_naissance,
+                "sexe": EtudiantOut.model_validate(etudiant).sexe,
+                "filiere": EtudiantOut.model_validate(etudiant).filiere,
+                "id_etudiant": EtudiantOut.model_validate(etudiant).id_etudiant
+                }
+        )
+
+    # ⏳ 3. Still waiting for consensus
+    remaining = face_cache.threshold - current_votes
+    return FacePendingResponse(
+        status="pending",
+        progress=current_votes,
+        matches_needed=remaining,
+        message=f"En attente de {remaining} correspondance(s) supplémentaire(s)"
+    )
