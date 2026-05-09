@@ -138,19 +138,39 @@ export default function App() {
   }, [cameraState, startCamera]);
 
 useEffect(() => {
-  if (currentView !== 'camera') return;
-  if (authState === 'pending' || authState === 'loading') return;
-  if (authState === 'denied') return;
-  if (accessFlash === 'denied') return;
-  if (!primaryDetection) {
-    resetAuthorization();
-    return;
-  }
+  // 1. Guard Clauses
 
-  requestAuthorization({
-    targetKey: currentTargetKey,
-    targetId: primaryDetection.target_id,
+    console.log('[AUTH CHECK]', {
+    currentView,
+    authState,
+    accessFlash,
+    primaryDetection,
+    currentTargetKey,
   });
+
+  if (currentView !== 'camera') return;
+  if (authState === 'denied' || accessFlash === 'denied') return;
+  if (authState === 'success') return;
+
+  let resetTimer;
+
+  if (primaryDetection) {
+    if (authState === 'idle' || authState === 'pending' || authState === 'error') {
+      requestAuthorization({
+        targetKey: currentTargetKey,
+        targetId: primaryDetection.target_id,
+      });
+    }
+  } else {
+    resetTimer = setTimeout(() => {
+      resetAuthorization();
+    }, 1500);
+  }
+  // CLEANUP: If the face reappears before 1.5s, 
+  // or the component re-renders, this clears the timer.
+  return () => {
+    if (resetTimer) clearTimeout(resetTimer);
+  };
 }, [
   accessFlash,
   authState,
@@ -255,6 +275,7 @@ if (authState === 'success' && Number(authResult?.authorized) === 1) {
 
       <div className={`camera-anchor ${inSecureData ? 'mini-anchor' : ''}`}>
         <CameraPanel
+          facingmode='user'
           videoRef={videoRef}
           overlayRef={overlayRef}
           cameraState={cameraState}

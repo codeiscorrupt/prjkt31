@@ -11,7 +11,7 @@ def run_person_detection(frame, timestamp: str | None = None, camera_id: str | N
     start = time.perf_counter()
     height, width = frame.shape[:2]
 
-    detection = detect_primary_face(frame)
+    detection = detect_primary_face(frame, camera_id or "default")
     detections: list[dict[str, Any]] = []
 
     if detection:

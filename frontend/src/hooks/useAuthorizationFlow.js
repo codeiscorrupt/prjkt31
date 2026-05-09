@@ -30,6 +30,7 @@ export function useAuthorizationFlow({ authorizeUrl, cameraId, captureFrameBlob,
   }, []);
 
   const requestAuthorization = useCallback(async ({ targetKey, targetId }) => {
+
     if (!targetKey) return;
 
     const now = Date.now();
@@ -84,9 +85,10 @@ export function useAuthorizationFlow({ authorizeUrl, cameraId, captureFrameBlob,
       } else if (authorized === AUTH_STATUS.UNAUTHORIZED) {
         setAuthState('denied');
       } else {
-        setAuthState('loading');
+        setAuthState('pending');
       }
-
+        // ... rest of function
+    
       onLog?.(result.message || 'Authorization updated.');
     } catch (error) {
       setAuthState('error');

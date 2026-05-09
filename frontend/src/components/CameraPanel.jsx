@@ -1,4 +1,5 @@
 export function CameraPanel({
+  facingmode = 'user',
   videoRef,
   overlayRef,
   cameraState,

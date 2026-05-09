@@ -60,7 +60,7 @@ const startCamera = useCallback(async () => {
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: 'environment' },
+          facingMode: { ideal: 'user' },
           width: { ideal: idealWidth },
           height: { ideal: idealHeight },
         },

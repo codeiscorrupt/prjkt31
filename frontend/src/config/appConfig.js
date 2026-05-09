@@ -3,6 +3,8 @@
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || "/api";
 
+// Derive WebSocket base from current page location
+// Works on localhost (ws://) and production HTTPS (wss://) automatically
 const WS_BASE = (() => {
   if (import.meta.env.VITE_WS_BASE_URL) return import.meta.env.VITE_WS_BASE_URL;
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";

@@ -39,15 +39,6 @@ class UnknownFaceCache:
         else:
             raise ValueError(f"Unsupported distance metric: {self.metric}")
         
-    def _has_consensus_unlocked(self) -> bool:
-        votes: Dict[int, int] = {}
-        for item in self._store:
-            uid = item["id"]
-            votes[uid] = votes.get(uid, 0) + 1
-            if votes[uid] >= self.required_nbr:
-                return True
-        return False
-    
     def check_consensus(self, required_nbr: int) -> Tuple[bool, Optional[int], int]:
         """
         Scans the FIFO cache to see if ANY face ID has appeared `required_nbr` times.
@@ -71,69 +62,39 @@ class UnknownFaceCache:
             return False
         
     def register(self, embedding: Union[np.ndarray, list]) -> bool:
-    #"""
-    #    Register a new face embedding.
-    #    Returns: False (if no unknown face is reoccuring)
-    #        or   True (if an unknown face is reoccuring)
-      #  """
-       # emb = self._to_numpy(embedding)
-        #
-       # with self._lock:
-       #     now = time.time()
-        #    
-        #    # Lazy TTL cleanup (O(N) but lightweight for typical cache sizes)
-         #   if self._store:
-         #       self._store = deque(
-         #           [item for item in self._store if (now - item["timestamp"]) <= self.ttl],
-          #          maxlen=self.max_size
-           #     )
+        """
+        Register a new face embedding.
+        Returns: False (if no unknown face is reoccuring)
+            or   True (if an unknown face is reoccuring)
+        """
+        emb = self._to_numpy(embedding)
+        
+        with self._lock:
+            now = time.time()
+            
+            # Lazy TTL cleanup (O(N) but lightweight for typical cache sizes)
+            if self._store:
+                self._store = deque(
+                    [item for item in self._store if (now - item["timestamp"]) <= self.ttl],
+                    maxlen=self.max_size
+                )
 
-            #min_dist = float("inf")
+            min_dist = float("inf")
 
             # Linear scan against all cached embeddings
-            #for item in self._store:
-             #   dist = self._compute_distance(emb, item["embedding"])
-              #  if dist < min_dist:
-               #     min_dist = dist
-               #     if dist <= self.threshold:
-               #         self._store.append({"id": item["id"], "embedding": emb, "timestamp": now})
-               #         return self.check_consensus(self._store)
-                    
-               # last_id = item["id"]
-            
-           # self._next_id = last_id + 1
-           # self._store.append({"id": self._next_id, "embedding": emb, "timestamp": now})
-           # return self.check_consensus(self._store)
-
-        emb = self._to_numpy(embedding)
-        now = time.time()
-
-        with self._lock:
-            self._store = deque(
-                [item for item in self._store if now - item["timestamp"] <= self.ttl],
-                maxlen=self.max_size,
-            )
-
-            matched_id = None
-            best_dist = float("inf")
-
             for item in self._store:
                 dist = self._compute_distance(emb, item["embedding"])
-                if dist < best_dist:
-                    best_dist = dist
+                if dist < min_dist:
+                    min_dist = dist
                     if dist <= self.threshold:
-                        matched_id = item["id"]
+                        self._store.append({"id": item["id"], "embedding": emb, "timestamp": now})
+                        return self.check_consensus(self._store)
+                    
+                last_id = item["id"]
+            
+            self._next_id = last_id + 1
+            self._store.append({"id": self._next_id, "embedding": emb, "timestamp": now})
+            return self.check_consensus(self._store)
 
-            if matched_id is None:
-                matched_id = self._next_id
-                self._next_id += 1
-
-            self._store.append({
-                "id": matched_id,
-                "embedding": emb,
-                "timestamp": now,
-            })
-
-            return self._has_consensus_unlocked()
 # Global singleton instance
 unknown_faces_cache = UnknownFaceCache()
