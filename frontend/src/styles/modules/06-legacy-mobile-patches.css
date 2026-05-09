@@ -1,0 +1,429 @@
+/* =========================================================
+   MOBILE RESPONSIVE EMERGENCY PATCH
+   Put this at the very bottom of accessCamera.css
+========================================================= */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+.access-app {
+  width: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Prevent random horizontal scroll */
+* {
+  box-sizing: border-box;
+}
+
+/* Main secure/dashboard layout */
+.secure-access-layout {
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.secure-data-space {
+  min-width: 0;
+}
+
+.secure-grid {
+  min-width: 0;
+}
+
+.secure-data-card {
+  min-width: 0;
+}
+
+.mini-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 1024px) {
+  .secure-access-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .secure-left-rail {
+    width: 260px;
+    min-width: 260px;
+  }
+
+  .secure-data-space {
+    padding: 24px;
+  }
+
+  .secure-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================
+   MOBILE DASHBOARD
+========================================= */
+
+@media (max-width: 720px) {
+  .secure-access-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .secure-left-rail {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: none;
+    padding: 14px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .mini-camera-label {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .secure-left-rail .access-details-panel {
+    padding: 12px;
+  }
+
+  .secure-left-rail .access-details-panel h2 {
+    font-size: 20px;
+    line-height: 1.1;
+  }
+
+  .secure-left-rail .access-message,
+  .secure-left-rail .access-backend-message {
+    display: none;
+  }
+
+  .secure-logout {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .secure-data-space {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .secure-data-space h1 {
+    font-size: clamp(26px, 9vw, 38px);
+    line-height: 1;
+  }
+
+  .secure-subtitle {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .secure-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .secure-data-card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .secure-info-list div {
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .secure-info-list span {
+    font-size: 12px;
+  }
+
+  .secure-info-list strong {
+    font-size: 14px;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .mini-table {
+    min-width: 520px;
+  }
+}
+
+/* =========================================
+   VERY SMALL PHONES
+========================================= */
+
+@media (max-width: 420px) {
+  .secure-data-space {
+    padding: 12px;
+  }
+
+  .secure-data-card {
+    padding: 14px;
+  }
+
+  .secure-data-space h1 {
+    font-size: 28px;
+  }
+
+  .secure-info-list div {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .secure-info-list strong {
+    text-align: left;
+  }
+}
+
+/* =========================================================
+   GESTURE PIN MOBILE FIX
+========================================================= */
+
+.gesture-pin-stage {
+  overflow: hidden;
+}
+
+/* Tablet: make side panels thinner */
+@media (max-width: 1024px) {
+  .gesture-pin-stage .side-blur-panel {
+    width: 240px;
+    padding: 80px 14px 18px;
+  }
+
+  .gesture-pin-stage .clear-camera-window {
+    left: 240px;
+    right: 240px;
+  }
+
+  .phone-keyboard {
+    width: min(340px, 36vw);
+  }
+}
+
+/* Mobile: camera becomes background, keypad becomes priority */
+@media (max-width: 760px) {
+  .gesture-pin-stage {
+    display: block;
+  }
+
+  .gesture-pin-stage .clear-camera-window {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    pointer-events: none;
+  }
+
+  .gesture-pin-stage .side-blur-panel {
+    position: absolute;
+    top: auto;
+    bottom: 0;
+    height: 130px;
+    width: 50%;
+    padding: 10px;
+    overflow: hidden;
+    pointer-events: auto;
+    backdrop-filter: blur(14px);
+  }
+
+  .gesture-pin-stage .left-panel {
+    left: 0;
+  }
+
+  .gesture-pin-stage .right-panel {
+    right: 0;
+  }
+
+  .gesture-pin-stage .left-panel .access-details-panel {
+    padding: 10px;
+  }
+
+  .gesture-pin-stage .left-panel .access-details-panel h2 {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+
+  .gesture-pin-stage .left-panel .panel-eyebrow,
+  .gesture-pin-stage .left-panel .access-message,
+  .gesture-pin-stage .left-panel .access-backend-message,
+  .gesture-pin-stage .left-panel .access-detail-row span {
+    display: none;
+  }
+
+  .gesture-pin-stage .access-detail-list {
+    gap: 4px;
+  }
+
+  .gesture-pin-stage .access-detail-row {
+    padding: 4px 0;
+  }
+
+  .gesture-pin-stage .access-detail-row strong {
+    font-size: 11px;
+  }
+
+  .gesture-pin-stage .right-panel .guide-card {
+    padding: 8px;
+  }
+
+  .gesture-pin-stage .right-panel .guide-title {
+    font-size: 12px;
+  }
+
+  .gesture-pin-stage .right-panel .guide-copy {
+    display: none;
+  }
+
+  .gesture-pin-stage .right-panel .guide-svg {
+    height: 46px;
+  }
+
+  .phone-keyboard {
+    top: 44%;
+    left: 50%;
+    width: min(92vw, 330px);
+    max-height: calc(100dvh - 150px);
+    padding: 12px;
+    pointer-events: auto;
+    z-index: 30;
+  }
+
+  .pin-header {
+    gap: 10px;
+  }
+
+  .pin-header strong {
+    font-size: 16px;
+  }
+
+  .pin-header span {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .pin-dots {
+    margin: 8px 0 10px;
+  }
+
+  .phone-key-grid {
+    gap: 7px;
+  }
+
+  .phone-key {
+    min-height: 46px;
+    font-size: 21px;
+    border-radius: 15px;
+  }
+
+  .pin-hint {
+    font-size: 11px;
+    margin-top: 8px;
+  }
+}
+
+/* Very small phones: hide side panels completely during PIN */
+@media (max-width: 480px) {
+  .gesture-pin-stage .side-blur-panel {
+    display: none;
+  }
+
+  .phone-keyboard {
+    top: 50%;
+    width: min(94vw, 315px);
+    max-height: 90dvh;
+  }
+
+  .phone-key {
+    min-height: 48px;
+  }
+}
+
+/* Short screens */
+@media (max-height: 650px) {
+  .phone-keyboard {
+    transform: translate(-50%, -50%) scale(0.88);
+  }
+
+  .phone-key {
+    min-height: 42px;
+  }
+
+  .pin-hint {
+    display: none;
+  }
+}
+
+@media (max-height: 560px) {
+  .phone-keyboard {
+    transform: translate(-50%, -50%) scale(0.78);
+  }
+
+  .gesture-pin-stage .side-blur-panel {
+    display: none;
+  }
+}
+/* Dashboard camera should never take half the mobile screen */
+@media (max-width: 720px) {
+  .view-data-dashboard .camera-anchor.mini-anchor {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    left: auto;
+    width: 120px;
+    height: 90px;
+    z-index: 40;
+    border-radius: 18px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .view-data-dashboard .camera-anchor.mini-anchor .camera-panel,
+  .view-data-dashboard .camera-anchor.mini-anchor .camera-stage,
+  .view-data-dashboard .camera-anchor.mini-anchor video,
+  .view-data-dashboard .camera-anchor.mini-anchor canvas {
+    width: 120px !important;
+    height: 90px !important;
+    min-height: 0 !important;
+    object-fit: cover;
+  }
+
+  .view-data-dashboard .secure-access-layout {
+    padding-top: 110px;
+  }
+}
+@media (max-width: 520px) {
+  .view-pin-verification .side-blur-panel {
+    display: none !important;
+  }
+
+  .view-pin-verification .clear-camera-window {
+    inset: 0 !important;
+    border: 0 !important;
+  }
+
+  .view-pin-verification .phone-keyboard {
+    width: min(94vw, 320px) !important;
+    top: 50% !important;
+    left: 50% !important;
+    max-height: 90dvh;
+    z-index: 50;
+  }
+
+  .view-pin-verification .phone-key {
+    min-height: 48px;
+  }
+}

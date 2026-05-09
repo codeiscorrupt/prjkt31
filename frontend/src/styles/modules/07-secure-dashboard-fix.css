@@ -1,0 +1,293 @@
+/* =========================================================
+   FRONTEND CLEANUP: secure dashboard + mobile camera PIP
+   Keep this block LAST so it wins over previous emergency patches.
+========================================================= */
+.view-data-dashboard {
+  overflow-y: auto;
+}
+
+.view-data-dashboard .camera-anchor.mini-anchor {
+  position: fixed !important;
+  top: max(12px, env(safe-area-inset-top)) !important;
+  right: max(12px, env(safe-area-inset-right)) !important;
+  left: auto !important;
+  width: clamp(116px, 18vw, 176px) !important;
+  height: clamp(116px, 18vw, 176px) !important;
+  min-height: 0 !important;
+  z-index: 70 !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  pointer-events: none;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(56, 189, 248, 0.42);
+}
+
+.view-data-dashboard .camera-anchor.mini-anchor .camera-panel,
+.view-data-dashboard .camera-anchor.mini-anchor .camera-stage,
+.view-data-dashboard .camera-anchor.mini-anchor .camera-video,
+.view-data-dashboard .camera-anchor.mini-anchor .camera-overlay {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 24px !important;
+}
+
+.view-data-dashboard .camera-anchor.mini-anchor .camera-stage {
+  border-width: 2px !important;
+}
+
+.view-data-dashboard .camera-anchor.mini-anchor .camera-video {
+  object-fit: cover !important;
+  transform: none !important;
+}
+
+.secure-access-layout {
+  position: relative;
+  z-index: 8;
+  width: 100%;
+  min-height: 100dvh;
+  padding: clamp(18px, 2.4vw, 34px);
+  padding-left: min(31vw, 430px);
+  overflow-x: hidden;
+}
+
+.secure-left-rail {
+  position: fixed;
+  z-index: 45;
+  left: clamp(14px, 2vw, 26px);
+  top: calc(clamp(116px, 18vw, 176px) + 34px);
+  width: min(25vw, 360px);
+  max-height: calc(100dvh - clamp(116px, 18vw, 176px) - 58px);
+  overflow: auto;
+}
+
+.secure-data-space {
+  min-width: 0;
+  border-radius: clamp(24px, 3vw, 36px);
+}
+
+.secure-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.secure-title-block {
+  min-width: 0;
+}
+
+.secure-title-block h1 {
+  overflow-wrap: anywhere;
+}
+
+.secure-mobile-topbar {
+  display: none !important;
+}
+
+.secure-mobile-back,
+.secure-logout {
+  border: 1px solid rgba(125, 211, 252, 0.44);
+  border-radius: 16px;
+  color: #e0f2fe;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.32), rgba(37, 99, 235, 0.40));
+  box-shadow: 0 12px 32px rgba(14, 165, 233, 0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+  cursor: pointer;
+  font-weight: 950;
+  letter-spacing: -0.01em;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.secure-mobile-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 0 18px;
+  white-space: nowrap;
+}
+
+.secure-mobile-back span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.secure-logout {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 12px;
+}
+
+.secure-mobile-back:hover,
+.secure-logout:hover {
+  transform: translateY(-1px);
+  border-color: rgba(186, 230, 253, 0.72);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.44), rgba(37, 99, 235, 0.54));
+}
+
+.secure-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.secure-data-card-wide,
+.secure-data-card:nth-child(n + 3) {
+  grid-column: 1 / -1;
+}
+
+.secure-info-list div {
+  min-width: 0;
+}
+
+.secure-info-list strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .view-data-dashboard .camera-anchor.mini-anchor {
+    width: 118px !important;
+    height: 118px !important;
+    border-radius: 22px !important;
+  }
+
+  .view-data-dashboard .camera-anchor.mini-anchor .camera-panel,
+  .view-data-dashboard .camera-anchor.mini-anchor .camera-stage,
+  .view-data-dashboard .camera-anchor.mini-anchor .camera-video,
+  .view-data-dashboard .camera-anchor.mini-anchor .camera-overlay {
+    border-radius: 22px !important;
+  }
+
+  .secure-access-layout {
+    padding: 12px;
+    padding-top: calc(118px + max(26px, env(safe-area-inset-top)));
+  }
+
+  .secure-left-rail {
+    display: none !important;
+  }
+
+  .secure-data-space {
+    min-height: auto;
+    padding: 16px;
+    border-radius: 26px;
+  }
+
+  .secure-page-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    align-items: center;
+    margin: -16px -16px 16px;
+    padding: 14px 16px;
+    border-radius: 26px 26px 18px 18px;
+    background: rgba(2, 6, 23, 0.82);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  }
+
+  .secure-title-block h1 {
+    font-size: clamp(24px, 8vw, 38px);
+    line-height: 1;
+  }
+
+  .secure-subtitle {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .secure-mobile-back {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 15px;
+  }
+
+  .secure-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .secure-data-card,
+  .secure-data-card-wide,
+  .secure-data-card:nth-child(n + 3) {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .view-data-dashboard .camera-anchor.mini-anchor {
+    width: 104px !important;
+    height: 104px !important;
+    top: max(10px, env(safe-area-inset-top)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+  }
+
+  .secure-access-layout {
+    padding: 10px;
+    padding-top: calc(104px + max(24px, env(safe-area-inset-top)));
+  }
+
+  .secure-data-space {
+    padding: 12px;
+    border-radius: 22px;
+  }
+
+  .secure-page-header {
+    margin: -12px -12px 14px;
+    padding: 12px;
+    gap: 10px;
+    border-radius: 22px 22px 16px 16px;
+  }
+
+  .secure-title-block .panel-eyebrow {
+    font-size: 10px;
+    margin-bottom: 5px;
+  }
+
+  .secure-title-block h1 {
+    font-size: clamp(22px, 7.5vw, 30px);
+    letter-spacing: -0.045em;
+  }
+
+  .secure-subtitle {
+    display: none;
+  }
+
+  .secure-mobile-back {
+    min-width: 92px;
+    min-height: 42px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .secure-data-card {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .secure-data-card h3 {
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .secure-info-list div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 9px 0;
+  }
+
+  .secure-info-list strong {
+    text-align: left;
+    font-size: 14px;
+  }
+
+  .mini-table {
+    min-width: 460px;
+  }
+}

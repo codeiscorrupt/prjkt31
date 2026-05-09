@@ -21,6 +21,7 @@ export function useWebSocketDetection({
   // Keep latest values in refs to avoid stale closures inside WS handlers
   const enabledRef = useRef(enabled);
   const callbacksRef = useRef({ captureFrameBlob, onResult, onError, onLog });
+  const nextCycleTimerRef = useRef(null);
 
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
   useEffect(() => {
@@ -40,7 +41,10 @@ export function useWebSocketDetection({
       const blob = await captureFrameBlob();
       if (!blob) {
         setDetectState('idle');
-        setTimeout(runCycle, 200);
+        window.clearTimeout(nextCycleTimerRef.current);
+        nextCycleTimerRef.current = window.setTimeout(() => {
+          if (enabledRef.current && loopActiveRef.current) runCycle();
+        }, 80);
         return;
       }
 
@@ -53,6 +57,8 @@ export function useWebSocketDetection({
         timeoutRef.current = setTimeout(() => reject(new Error('Detection timeout')), 5000);
       });
 
+      if (!enabledRef.current || !loopActiveRef.current) return;
+
       setDetectState('success');
       onResult(result);
     } catch (error) {
@@ -62,9 +68,10 @@ export function useWebSocketDetection({
     }
 
     // Yield to event loop, then continue if still enabled
-    setTimeout(() => {
+    window.clearTimeout(nextCycleTimerRef.current);
+    nextCycleTimerRef.current = window.setTimeout(() => {
       if (enabledRef.current && loopActiveRef.current) runCycle();
-    }, 50);
+    }, 80);
   }, []);
 
   const stopCycle = useCallback(() => {

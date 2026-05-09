@@ -1,0 +1,308 @@
+@media (max-width: 1180px) {
+  .side-blur-panel { width: 28vw; min-width: 220px; }
+  .clear-camera-window { left: 28vw; right: 28vw; }
+  .phone-keyboard { width: min(34vw, 330px); }
+  .guide-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+  .camera-topbar { align-items: flex-start; flex-direction: column; }
+  .camera-actions { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+  .side-blur-panel { position: absolute; top: auto; bottom: 0; width: 50%; height: 38vh; padding: 14px; }
+  .left-panel { left: 0; }
+  .right-panel { right: 0; }
+  .clear-camera-window { left: 0; right: 0; top: 0; bottom: 38vh; border: 0; }
+  .phone-keyboard { top: 40%; width: min(80vw, 330px); }
+  .guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .system-strip { grid-template-columns: 1fr; }
+  .camera-anchor.mini-anchor { width: min(44vw, 230px); }
+  .secure-access-layout { padding-left: 12px; padding-top: min(50vw, 270px); }
+  .secure-left-rail { position: static; width: 100%; max-height: none; }
+  .secure-grid { grid-template-columns: 1fr; }
+  .secure-data-card:nth-child(n + 3) { grid-column: auto; }
+}
+
+@media (max-width: 560px) {
+  .camera-panel { padding: 8px; }
+  .camera-stage { border-radius: 20px; min-height: calc(100vh - 16px); }
+  .camera-topbar { top: 14px; padding: 12px; }
+  .camera-actions { opacity: 0.92; grid-template-columns: 1fr 1fr; bottom: 10px; }
+  .side-blur-panel { width: 100%; height: 30vh; }
+  .left-panel { display: none; }
+  .right-panel { left: 0; }
+  .phone-keyboard { top: 45%; min-width: 0; width: min(88vw, 320px); }
+  .guide-card { min-height: 102px; }
+  .guide-svg { height: 60px; }
+}
+
+/* --- HOTFIX: camera-first UX, no initial buttons, non-blocking auth, real MediaPipe cursor visibility --- */
+
+.camera-panel {
+  padding: 0 !important;
+}
+
+.camera-stage {
+  min-height: 100vh !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  border-width: 4px !important;
+}
+
+.camera-topbar,
+.camera-actions,
+.system-strip,
+.transition-message {
+  display: none !important;
+}
+
+.access-flash-message {
+  z-index: 35;
+  pointer-events: none;
+  padding: clamp(12px, 1.8vw, 22px) clamp(18px, 3vw, 38px);
+  font-size: clamp(24px, 4.5vw, 64px);
+  animation: flashPop 220ms ease-out both, flashFade 850ms ease-out 120ms forwards;
+}
+
+@keyframes flashFade {
+  0%,
+  65% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+}
+
+.gesture-pin-stage {
+  opacity: 1 !important;
+}
+
+.view-authorized-pause .gesture-pin-stage,
+.view-success .gesture-pin-stage {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.stage-cursor {
+  z-index: 80 !important;
+  filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.85));
+}
+
+.stage-cursor.visible {
+  opacity: 1 !important;
+}
+
+.phone-keyboard {
+  z-index: 45;
+}
+
+.side-blur-panel {
+  z-index: 35;
+}
+
+.clear-camera-window {
+  z-index: 32;
+}
+
+.pin-hint {
+  min-height: 18px;
+}
+/* === Responsive + smooth PIN stage patch === */
+
+.access-app {
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.camera-anchor {
+  min-height: 100dvh;
+}
+
+.camera-panel,
+.camera-stage {
+  min-height: 100dvh;
+}
+
+.gesture-pin-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.phone-keyboard {
+  width: clamp(250px, 27vw, 340px);
+  max-height: min(92dvh, 620px);
+  overflow: hidden;
+  padding: clamp(12px, 1.5vw, 18px);
+  border-radius: clamp(20px, 2vw, 30px);
+}
+
+.pin-header strong {
+  font-size: clamp(16px, 1.4vw, 20px);
+  letter-spacing: -0.02em;
+}
+
+.pin-header span,
+.pin-hint {
+  font-size: clamp(11px, 0.9vw, 13px);
+  line-height: 1.35;
+}
+
+.phone-key-grid {
+  gap: clamp(7px, 1vw, 12px);
+}
+
+.phone-key {
+  border-radius: clamp(16px, 1.6vw, 22px);
+  font-size: clamp(19px, 2.3vw, 32px);
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.stage-cursor {
+  will-change: left, top, transform, opacity;
+}
+
+.access-details-panel h2 {
+  font-size: clamp(22px, 2vw, 34px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.access-message,
+.access-backend-message {
+  font-size: clamp(12px, 1vw, 14px);
+  line-height: 1.45;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .side-blur-panel {
+    width: min(30vw, 280px);
+    padding: clamp(70px, 9vh, 110px) 14px 20px;
+  }
+
+  .clear-camera-window {
+    left: min(30vw, 280px);
+    right: min(30vw, 280px);
+  }
+
+  .phone-keyboard {
+    width: clamp(250px, 36vw, 330px);
+  }
+}
+
+/* Small screens: keep center usable, move info panels down */
+@media (max-width: 760px) {
+  .side-blur-panel {
+    top: auto;
+    bottom: 0;
+    height: 28dvh;
+    width: 50%;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .left-panel {
+    left: 0;
+  }
+
+  .right-panel {
+    right: 0;
+  }
+
+  .clear-camera-window {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 28dvh;
+    border: 0;
+  }
+
+  .phone-keyboard {
+    top: 38%;
+    width: min(88vw, 330px);
+    max-height: 62dvh;
+  }
+
+  .access-details-panel h2 {
+    font-size: 20px;
+  }
+
+  .access-message,
+  .access-backend-message {
+    display: none;
+  }
+}
+
+/* Phones: hide left info, keep guide minimal */
+@media (max-width: 520px) {
+  .left-panel {
+    display: none;
+  }
+
+  .right-panel {
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 22dvh;
+  }
+
+  .clear-camera-window {
+    bottom: 22dvh;
+  }
+
+  .phone-keyboard {
+    top: 42%;
+    width: min(92vw, 310px);
+    padding: 11px;
+  }
+
+  .phone-key-grid {
+    gap: 7px;
+  }
+
+  .pin-dots {
+    margin: 8px 0 10px;
+  }
+
+  .phone-key {
+    border-radius: 16px;
+  }
+
+  .guide-card {
+    min-height: 74px;
+  }
+
+  .guide-svg {
+    height: 46px;
+  }
+}
+
+/* Very short screens */
+@media (max-height: 660px) {
+  .phone-keyboard {
+    top: 48%;
+    transform: translate(-50%, -50%) scale(0.88);
+  }
+
+  .side-blur-panel {
+    padding-top: 54px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-key,
+  .stage-cursor,
+  .camera-anchor,
+  .access-flash-message {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+

@@ -44,11 +44,11 @@ class FaceEmbedExtract(BaseModel):
     face_embedding: Optional[list[float]] = None
 
 class FaceAuthResponse(BaseModel):
-    access_token: str
+    access_token: Optional[str] = None
     token_type: str
-    etudiant: EtudiantMainOut
+    etudiant: Optional[EtudiantMainOut] = None
     model_config = ConfigDict(from_attributes=True)
-
+    
 class FacePendingResponse(BaseModel):
     status: str
     progress: int

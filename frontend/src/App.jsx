@@ -139,7 +139,7 @@ export default function App() {
 
 useEffect(() => {
   if (currentView !== 'camera') return;
-  if (authState === 'pending') return;
+  if (authState === 'pending' || authState === 'loading') return;
   if (authState === 'denied') return;
   if (accessFlash === 'denied') return;
   if (!primaryDetection) {

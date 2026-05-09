@@ -4,7 +4,7 @@ from app.services.engines.deepface_engine import build_embedding
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from app.models import Biometrie, Etudiant
-from app.schemas import EtudiantOut, FaceAuthResponse, FacePendingResponse
+from app.schemas import EtudiantMainOut, EtudiantOut, FaceAuthResponse, FacePendingResponse
 from app.services.dbservice import create_token
 from app.services.face_cache import face_cache
 from app.services.unknown_faces_cache import unknown_faces_cache
@@ -147,14 +147,14 @@ def face_auth(face_embedding: list[float], client_id: str = "client_id", db: Ses
         return FaceAuthResponse(
             access_token=token,
             token_type="bearer",
-            etudiant={
-                "nom" : EtudiantOut.model_validate(etudiant).nom,
-                "prenom": EtudiantOut.model_validate(etudiant).prenom,
-                "date_naissance": EtudiantOut.model_validate(etudiant).date_naissance,
-                "sexe": EtudiantOut.model_validate(etudiant).sexe,
-                "filiere": EtudiantOut.model_validate(etudiant).filiere,
-                "id_etudiant": EtudiantOut.model_validate(etudiant).id_etudiant
-                }
+            etudiant=EtudiantMainOut(
+                id_etudiant=EtudiantOut.model_validate(etudiant).id_etudiant,
+                nom=EtudiantOut.model_validate(etudiant).nom,
+                prenom=EtudiantOut.model_validate(etudiant).prenom,
+                date_naissance=EtudiantOut.model_validate(etudiant).date_naissance,
+                sexe=EtudiantOut.model_validate(etudiant).sexe,
+                filiere=EtudiantOut.model_validate(etudiant).filiere,
+            )
         )
 
     # ⏳ 3. Still waiting for consensus

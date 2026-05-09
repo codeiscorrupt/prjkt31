@@ -35,4 +35,4 @@ class FaceConsensusCache:
             return None, votes.get(user_id, 0)
 
 # Global instance (singleton)
-face_cache = FaceConsensusCache(settings.CACHE_MAX, settings.CACH_REQUIRED)
+face_cache = FaceConsensusCache(settings.CACHE_MAX, settings.CACHE_REQUIRED)

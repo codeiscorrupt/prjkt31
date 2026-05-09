@@ -76,8 +76,12 @@ def register_etudiant(request: RegisterRequest, db: Session = Depends(get_db)):
 
 #Seance Prochaine
 @router.get("/seance")
-def get_session(id_etudiant: int, token: str, db: Session = Depends(get_db)):
-    data = get_token_data(token)
+def get_session(
+    id_etudiant: int,
+    authorization: str = Header(..., alias="Authorization"),
+    db: Session = Depends(get_db)
+):
+    data = get_token_data(authorization.split(" ")[1])  # Bearer <token>
     if int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
     
@@ -107,9 +111,12 @@ def get_session(id_etudiant: int, token: str, db: Session = Depends(get_db)):
 
 #Notes sensibles (NON chiffrées)
 @router.get("/{id_etudiant}/sensible/notes")
-def get_notes(id_etudiant: int, token: str, db: Session = Depends(get_db)):
-
-    data = get_token_data(token)
+def get_notes(
+    id_etudiant: int,
+    authorization: str = Header(..., alias="Authorization"),
+    db: Session = Depends(get_db)
+):
+    data = get_token_data(authorization.split(" ")[1])
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
 
@@ -118,9 +125,14 @@ def get_notes(id_etudiant: int, token: str, db: Session = Depends(get_db)):
 
 #Identite sensible (AVEC déchiffrement)
 @router.get("/{id_etudiant}/sensible/identite")
-def get_identite(id_etudiant: int, token: str, x_pin: str = Header(..., alias="X-Pin"), db: Session = Depends(get_db)):
+def get_identite(
+    id_etudiant: int,
+    authorization: str = Header(..., alias="Authorization"),
+    x_pin: str = Header(..., alias="X-Pin"),
+    db: Session = Depends(get_db)
+):
 
-    data = get_token_data(token)
+    data = get_token_data(authorization.split(" ")[1])
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
 
@@ -142,9 +154,13 @@ def get_identite(id_etudiant: int, token: str, x_pin: str = Header(..., alias="X
 
 #Absences
 @router.get("/{id_etudiant}/sensible/absences")
-def get_absences(id_etudiant: int, token: str, db: Session = Depends(get_db)):
+def get_absences(
+    id_etudiant: int,
+    authorization: str = Header(..., alias="Authorization"),
+    db: Session = Depends(get_db)
+):
 
-    data = get_token_data(token)
+    data = get_token_data(authorization.split(" ")[1])
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
 
@@ -155,8 +171,13 @@ def get_absences(id_etudiant: int, token: str, db: Session = Depends(get_db)):
 # ─── photo ─────────────────────────────────
 
 @router.post("/{id_etudiant}/photo")
-def upload_photo(id_etudiant: int, token: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    data = get_token_data(token)
+def upload_photo(
+    id_etudiant: int,
+    authorization: str = Header(..., alias="Authorization"),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    data = get_token_data(authorization.split(" ")[1])
     if int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
 
@@ -187,9 +208,14 @@ def upload_photo(id_etudiant: int, token: str, file: UploadFile = File(...), db:
 
 # ─── Infos normales (avec déchiffrement) ─────────────────
 @router.get("/{id_etudiant}", response_model=EtudiantOut)
-def get_etudiant(id_etudiant: int, token: str, x_pin: str = Header(..., alias="X-Pin"), db: Session = Depends(get_db)):
+def get_etudiant(
+    id_etudiant: int,
+    authorization: str = Header(..., alias="Authorization"),
+    x_pin: str = Header(..., alias="X-Pin"),
+    db: Session = Depends(get_db)
+):
 
-    data = get_token_data(token)
+    data = get_token_data(authorization.split(" ")[1])
     if int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
 

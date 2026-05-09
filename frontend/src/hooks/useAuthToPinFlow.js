@@ -97,7 +97,7 @@ export function useAuthToPinFlow({
 
       previousAuthorizedIdRef.current = idStillValid;
       setCurrentView('pin-verification');
-    }, 5000);
+    }, 1200);
 
     return () => window.clearTimeout(transitionTimerRef.current);
   }, [authResult, authState, onLog]);

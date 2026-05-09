@@ -4,15 +4,19 @@ import { AccessDetailsPanel } from './AccessDetailsPanel.jsx';
 function formatDate(value) {
   if (!value) return '—';
   try {
-    return new Date(value).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' });
+    return new Date(value).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   } catch {
     return value;
   }
 }
 
-function DataCard({ title, children }) {
+function DataCard({ title, children, className = '' }) {
   return (
-    <article className="secure-data-card">
+    <article className={`secure-data-card ${className}`.trim()}>
       <h3>{title}</h3>
       {children}
     </article>
@@ -21,6 +25,7 @@ function DataCard({ title, children }) {
 
 function MiniTable({ columns, rows, empty }) {
   if (!rows?.length) return <p className="empty-data">{empty}</p>;
+
   return (
     <div className="mini-table-wrap">
       <table className="mini-table">
@@ -30,7 +35,9 @@ function MiniTable({ columns, rows, empty }) {
         <tbody>
           {rows.map((row, index) => (
             <tr key={index}>
-              {columns.map((column) => <td key={column.key}>{column.render ? column.render(row) : row[column.key] ?? '—'}</td>)}
+              {columns.map((column) => (
+                <td key={column.key}>{column.render ? column.render(row) : row[column.key] ?? '—'}</td>
+              ))}
             </tr>
           ))}
         </tbody>
@@ -39,72 +46,92 @@ function MiniTable({ columns, rows, empty }) {
   );
 }
 
+async function fetchJson(url, headers, signal) {
+  const response = await fetch(url, { headers, signal });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.detail || payload?.message || `HTTP ${response.status}`);
+  }
+
+  return payload;
+}
+
 export function SecureAccessView({ token, student, pin, authResult, apiBaseUrl, onLogout }) {
   const studentId = student?.id_etudiant || student?.id;
-const [data, setData] = useState({profile: null , notes: [] , identite: null , absences: [] , seance: null,});
+  const [data, setData] = useState({
+    profile: null,
+    notes: [],
+    identite: null,
+    absences: [],
+    seance: null,
+  });
   const [loading, setLoading] = useState(Boolean(token && studentId));
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!token || !studentId) return;
 
-    let active = true;
+    const controller = new AbortController();
+
     async function loadData() {
       setLoading(true);
       setError('');
 
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'X-Pin': pin,
+      };
+
+      const urls = {
+        profile: `${apiBaseUrl}/etudiant/${studentId}`,
+        notes: `${apiBaseUrl}/etudiant/${studentId}/sensible/notes`,
+        identite: `${apiBaseUrl}/etudiant/${studentId}/sensible/identite`,
+        absences: `${apiBaseUrl}/etudiant/${studentId}/sensible/absences`,
+        seance: `${apiBaseUrl}/etudiant/seance?id_etudiant=${encodeURIComponent(studentId)}`,
+      };
+
       try {
-        const headers = {
-          Authorization: `Bearer ${token}`,
-          'X-Pin': pin,
-        };
-
-        const endpoints = [
-          `${apiBaseUrl}/etudiant/${studentId}`,
-          `${apiBaseUrl}/etudiant/${studentId}/sensible/notes`,
-          `${apiBaseUrl}/etudiant/${studentId}/sensible/identite`,
-          `${apiBaseUrl}/etudiant/${studentId}/sensible/absences`,
-          `${apiBaseUrl}/etudiant/seance?id_etudiant=${encodeURIComponent(studentId)}`,
-        ];
-
-        const responses = await Promise.all(
-          endpoints.map((url) => fetch(url, { headers }))
+        const results = await Promise.allSettled(
+          Object.entries(urls).map(async ([key, url]) => [key, await fetchJson(url, headers, controller.signal)])
         );
 
-        const failedResponse = responses.find((response) => !response.ok);
+        if (controller.signal.aborted) return;
 
-        if (failedResponse) {
-          const errorPayload = await failedResponse.json().catch(() => ({}));
-          throw new Error(
-            errorPayload.detail ||
-            errorPayload.message ||
-            `HTTP ${failedResponse.status}`
-          );
+        const nextData = {
+          profile: student || {},
+          notes: [],
+          identite: null,
+          absences: [],
+          seance: null,
+        };
+        const failures = [];
+
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            const [key, value] = result.value;
+            if (key === 'notes') nextData.notes = Array.isArray(value) ? value : [];
+            else if (key === 'absences') nextData.absences = Array.isArray(value) ? value : [];
+            else if (key === 'seance') nextData.seance = value?.seance || null;
+            else nextData[key] = value || null;
+          } else {
+            failures.push(result.reason?.message || 'Request failed');
+          }
         }
 
-        const [profile, notes, identite, absences, seanceData] = await Promise.all(
-          responses.map((response) => response.json())
-        );
-
-        if (!active) return;
-
-        setData({
-          profile: profile || student || {},
-          notes: Array.isArray(notes) ? notes : [],
-          identite: identite || null,
-          absences: Array.isArray(absences) ? absences : [],
-          seance: seanceData?.seance || null,
-        });
+        setData(nextData);
+        setError(failures.length ? `Some protected data could not be loaded: ${failures[0]}` : '');
       } catch (err) {
-        if (!active) return;
-        setError(err.message || 'Failed to load protected data');
+        if (!controller.signal.aborted) {
+          setError(err.message || 'Failed to load protected data');
+        }
       } finally {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
     loadData();
-    return () => { active = false; };
+    return () => controller.abort();
   }, [apiBaseUrl, pin, student, studentId, token]);
 
   const profile = data.profile || student || {};
@@ -112,35 +139,38 @@ const [data, setData] = useState({profile: null , notes: [] , identite: null , a
 
   return (
     <main className="secure-access-layout">
-      <aside className="secure-left-rail">
+      <aside className="secure-left-rail" aria-label="Camera and authorization details">
         <div className="mini-camera-label">Caméra active</div>
         <AccessDetailsPanel student={profile} authResult={authResult} compact />
-        <button className="secure-logout" type="button" onClick={onLogout}>Back to camera</button>
+        <button className="secure-logout" type="button" onClick={onLogout}>Retour caméra</button>
       </aside>
 
       <section className="secure-data-space">
-        <div className="secure-mobile-topbar">
-          <p className="panel-eyebrow">Données protégées</p>
-          <button className="secure-mobile-back" type="button" onClick={onLogout}>
-            Retour caméra
-          </button>
-        </div>
+        <header className="secure-page-header">
+          <div className="secure-title-block">
+            <p className="panel-eyebrow">Données protégées</p>
+            <h1>{title}</h1>
+            <p className="secure-subtitle">Accès validé par reconnaissance faciale et PIN gestuel.</p>
+          </div>
 
-        <p className="panel-eyebrow">Données protégées</p>
-        <h1>{title}</h1>
-        <p className="secure-subtitle">Accès validé par reconnaissance faciale et PIN gestuel.</p>
-        {loading && <div className="secure-loading">Loading protected data…</div>}
+          <button className="secure-mobile-back" type="button" onClick={onLogout}>
+            <span aria-hidden="true">←</span>
+            Retour
+          </button>
+        </header>
+
+        {loading && <div className="secure-loading">Chargement des données protégées…</div>}
         {error && <div className="secure-error">{error}</div>}
 
         <div className="secure-grid">
-        <DataCard title="Profil">
-          <div className="secure-info-list">
-            <div><span>Nom</span><strong>{profile.nom || '—'}</strong></div>
-            <div><span>Prénom</span><strong>{profile.prenom || '—'}</strong></div>
-            <div><span>Sexe</span><strong>{profile.sexe || '—'}</strong></div>
-            <div><span>Filière</span><strong>{profile.filiere || '—'}</strong></div>
-          </div>
-        </DataCard>
+          <DataCard title="Profil">
+            <div className="secure-info-list">
+              <div><span>Nom</span><strong>{profile.nom || '—'}</strong></div>
+              <div><span>Prénom</span><strong>{profile.prenom || '—'}</strong></div>
+              <div><span>Sexe</span><strong>{profile.sexe || '—'}</strong></div>
+              <div><span>Filière</span><strong>{profile.filiere || '—'}</strong></div>
+            </div>
+          </DataCard>
 
           <DataCard title="Identité">
             <div className="secure-info-list">
@@ -149,7 +179,7 @@ const [data, setData] = useState({profile: null , notes: [] , identite: null , a
             </div>
           </DataCard>
 
-          <DataCard title="Prochaine séance">
+          <DataCard title="Prochaine séance" className="secure-data-card-wide">
             {data.seance ? (
               <div className="secure-info-list">
                 <div><span>Module</span><strong>{data.seance.module || '—'}</strong></div>
@@ -157,9 +187,7 @@ const [data, setData] = useState({profile: null , notes: [] , identite: null , a
                 <div><span>Date</span><strong>{formatDate(data.seance.date_seance)}</strong></div>
                 <div>
                   <span>Heure</span>
-                  <strong>
-                    {(data.seance.heure_debut || '—') + ' → ' + (data.seance.heure_fin || '—')}
-                  </strong>
+                  <strong>{(data.seance.heure_debut || '—') + ' → ' + (data.seance.heure_fin || '—')}</strong>
                 </div>
               </div>
             ) : (
@@ -167,20 +195,20 @@ const [data, setData] = useState({profile: null , notes: [] , identite: null , a
             )}
           </DataCard>
 
-          <DataCard title="Notes">
+          <DataCard title="Notes" className="secure-data-card-wide">
             <MiniTable
               empty="Aucune note trouvée."
               rows={data.notes}
               columns={[
                 { key: 'module', label: 'Module' },
-                { key: 'note', label: 'Grade', render: (row) => row.note === undefined ? '—' : `${row.note}/20` },
+                { key: 'note', label: 'Note', render: (row) => row.note === undefined ? '—' : `${row.note}/20` },
                 { key: 'session', label: 'Session' },
-                { key: 'annee', label: 'Year' },
+                { key: 'annee', label: 'Année' },
               ]}
             />
           </DataCard>
 
-          <DataCard title="Absences">
+          <DataCard title="Absences" className="secure-data-card-wide">
             <MiniTable
               empty="Aucune absence trouvée."
               rows={data.absences}
@@ -188,7 +216,7 @@ const [data, setData] = useState({profile: null , notes: [] , identite: null , a
                 { key: 'date', label: 'Date', render: (row) => formatDate(row.date) },
                 { key: 'module', label: 'Module' },
                 { key: 'type', label: 'Type' },
-                { key: 'justified', label: 'Justified', render: (row) => row.justified ? 'Yes' : 'No' },
+                { key: 'justified', label: 'Justifiée', render: (row) => row.justified ? 'Oui' : 'Non' },
               ]}
             />
           </DataCard>

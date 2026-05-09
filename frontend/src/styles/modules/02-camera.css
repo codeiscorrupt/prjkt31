@@ -1,0 +1,135 @@
+.camera-anchor {
+  position: relative;
+  z-index: 2;
+  width: 100vw;
+  min-height: 100vh;
+  transition: width 720ms cubic-bezier(.2,.8,.2,1), transform 720ms cubic-bezier(.2,.8,.2,1), opacity 260ms ease;
+}
+
+.camera-anchor.mini-anchor {
+  position: fixed;
+  z-index: 20;
+  left: clamp(14px, 2vw, 26px);
+  top: clamp(14px, 2vw, 26px);
+  width: min(25vw, 360px);
+  min-height: 0;
+  animation: shrinkCamera 720ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes shrinkCamera {
+  from { width: 100vw; transform: translate(0, 0); }
+  to { width: min(25vw, 360px); transform: translate(0, 0); }
+}
+
+.camera-panel {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  padding: clamp(12px, 1.5vw, 22px);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.camera-panel-full.access-denied .camera-stage { border-color: rgba(239,68,68,0.96); box-shadow: 0 0 0 6px rgba(239,68,68,0.18), 0 0 70px rgba(239,68,68,0.34); }
+.camera-panel-full.access-authorized .camera-stage { border-color: rgba(34,197,94,0.96); box-shadow: 0 0 0 6px rgba(34,197,94,0.16), 0 0 80px rgba(34,197,94,0.30); }
+
+.camera-panel-mini {
+  min-height: 0;
+  padding: 0;
+}
+
+.camera-topbar {
+  position: absolute;
+  z-index: 12;
+  top: clamp(18px, 2vw, 34px);
+  left: 50%;
+  width: min(92vw, 1180px);
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(226,232,240,0.12);
+  border-radius: 22px;
+  background: rgba(2, 6, 23, 0.48);
+  backdrop-filter: blur(16px);
+}
+
+.camera-topbar h1 { margin: 0; font-size: clamp(20px, 2.3vw, 34px); line-height: 1; }
+.camera-topbar p { margin: 7px 0 0; color: var(--muted); font-size: clamp(12px, 1.1vw, 15px); }
+.status-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+.camera-stage {
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - clamp(24px, 3vw, 44px));
+  overflow: hidden;
+  border: 2px solid rgba(148,163,184,0.32);
+  border-radius: clamp(20px, 2.5vw, 38px);
+  background: #000;
+  box-shadow: 0 24px 90px rgba(0,0,0,0.45);
+  transition: border-color 240ms ease, box-shadow 240ms ease, border-radius 720ms ease, min-height 720ms ease;
+}
+
+.camera-panel-mini .camera-stage {
+  min-height: 0;
+  aspect-ratio: 1.08 / 1;
+  border-radius: 28px;
+  border-color: rgba(56,189,248,0.72);
+  box-shadow: 0 24px 90px rgba(0,0,0,0.45), 0 0 0 1px rgba(56,189,248,0.28);
+}
+
+.camera-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.camera-panel-mini .camera-video { object-fit: cover; transform: scale(1.32); }
+.camera-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.camera-panel-mini .camera-overlay { opacity: 0.88; }
+
+.camera-actions {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(18px, 2.2vw, 34px);
+  z-index: 12;
+  transform: translateX(-50%);
+  width: min(92vw, 860px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(226,232,240,0.12);
+  border-radius: 20px;
+  background: rgba(2,6,23,0.44);
+  backdrop-filter: blur(16px);
+}
+
+.view-pin-verification .camera-actions,
+.view-authorized-pause .camera-actions,
+.view-success .camera-actions { opacity: 0; pointer-events: none; }
+
+.access-flash-message {
+  position: absolute;
+  z-index: 25;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: clamp(18px, 2.2vw, 28px) clamp(26px, 4vw, 52px);
+  border-radius: 28px;
+  font-size: clamp(32px, 7vw, 92px);
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  color: white;
+  backdrop-filter: blur(12px);
+  animation: flashPop 220ms ease-out both;
+}
+.access-flash-message.denied { background: rgba(127, 29, 29, 0.72); text-shadow: 0 0 28px rgba(239,68,68,0.6); }
+.access-flash-message.authorized { background: rgba(20, 83, 45, 0.72); text-shadow: 0 0 28px rgba(34,197,94,0.6); }
+@keyframes flashPop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.86); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }

@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routes import auth, etudiant, admin_db, authorize, detect, websocket_detect, gesture_pin
 import os
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.rate_limit import limiter
 
 
 app = FastAPI(
@@ -10,6 +13,11 @@ app = FastAPI(
     description="API pour le systeme de controle d'acces biometrique",
     version="1.0.0"
 )
+
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 # Dossier uploads accessible publiquement
 uploads_path = os.path.join(os.path.dirname(__file__), "..", "uploads")

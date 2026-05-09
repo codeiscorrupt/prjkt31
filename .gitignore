@@ -24,7 +24,6 @@ start-dev.bat
 .vs
 
 #pics
-<<<<<<< HEAD
 backend/uploads/photos/backend/.env
 backend/.venv/
 backend/uploads/
@@ -33,6 +32,3 @@ backend/.env
 backend/.venv/
 backend/uploads/
 frontend/node_modules/
-=======
-backend/uploads/photos/
->>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247
