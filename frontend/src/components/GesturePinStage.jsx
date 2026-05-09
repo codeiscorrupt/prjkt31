@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessDetailsPanel } from './AccessDetailsPanel.jsx';
 import { GestureGuidePanel } from './GestureGuidePanel.jsx';
 
@@ -6,6 +6,15 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 function clamp01(value) {
   return Math.min(1, Math.max(0, Number(value) || 0));
+}
+
+function getPinStatusText({ gestureState, cursorActive, pinBusy }) {
+  if (pinBusy) return 'Vérification du PIN...';
+  if (gestureState === 'tracking' && cursorActive) return 'Main détectée. Fermez la main pour bouger, ouvrez pour cliquer.';
+  if (gestureState === 'tracking') return 'Montrez une main fermée devant la caméra.';
+  if (gestureState === 'connecting') return 'Connexion au suivi de la main...';
+  if (gestureState === 'error') return 'Suivi de la main indisponible. Utilisez le clavier.';
+  return 'Préparation du contrôle gestuel...';
 }
 
 export function GesturePinStage({
@@ -21,40 +30,101 @@ export function GesturePinStage({
   onPinSubmit,
   onBack,
 }) {
+  const stageRef = useRef(null);
   const buttonRefs = useRef({});
   const lastGestureClickRef = useRef(0);
+  const rafRef = useRef(0);
+  const latestGestureRef = useRef(null);
+
   const [cursor, setCursor] = useState({ x: 0.5, y: 0.55, visible: false });
+  const cursorRef = useRef(cursor);
+  const cursorSpeedRef = useRef(0);
+
   const [pressedKey, setPressedKey] = useState('');
 
   const cursorActive =
     active &&
     gestureResult?.hand_detected &&
     gestureResult?.cursor &&
-    !['unknown', 'unavailable', 'error'].includes(gestureResult?.gesture);
+    gestureResult?.gesture === 'closed';
 
   useEffect(() => {
-    if (!cursorActive) {
-      setCursor((previous) => ({ ...previous, visible: false }));
-      return;
-    }
+    latestGestureRef.current = gestureResult;
+  }, [gestureResult]);
 
-    const nextX = clamp01(gestureResult.cursor.x);
-    const nextY = clamp01(gestureResult.cursor.y);
+  useEffect(() => {
+    if (!active) return;
 
-    setCursor((previous) => ({
-      x: previous.x + (nextX - previous.x) * 0.4,
-      y: previous.y + (nextY - previous.y) * 0.4,
-      visible: true,
-    }));
-  }, [cursorActive, gestureResult]);
+    const animate = () => {
+      const latest = latestGestureRef.current;
+
+      const isActive =
+        latest?.hand_detected &&
+        latest?.cursor &&
+        latest?.gesture === 'closed';
+
+      if (!isActive) {
+        if (cursorRef.current.visible) {
+          const next = { ...cursorRef.current, visible: false };
+          cursorRef.current = next;
+          setCursor(next);
+        }
+
+        rafRef.current = window.requestAnimationFrame(animate);
+        return;
+      }
+
+      const targetX = clamp01(latest.cursor.x);
+      const targetY = clamp01(latest.cursor.y);
+
+      const previous = cursorRef.current;
+
+      const dx = targetX - previous.x;
+      const dy = targetY - previous.y;
+      const distance = Math.hypot(dx, dy);
+
+      cursorSpeedRef.current = distance;
+
+      // Ignore tiny jitter.
+      if (distance < 0.012) {
+        rafRef.current = window.requestAnimationFrame(animate);
+        return;
+      }
+
+      // Limit max movement per frame to avoid jumps.
+      const maxStep = 0.045;
+      const limitedDx = distance > maxStep ? (dx / distance) * maxStep : dx;
+      const limitedDy = distance > maxStep ? (dy / distance) * maxStep : dy;
+
+      const smoothing =
+        distance > 0.18 ? 0.30 :
+        distance > 0.08 ? 0.22 :
+        0.14;
+
+      const next = {
+        x: previous.x + limitedDx * smoothing,
+        y: previous.y + limitedDy * smoothing,
+        visible: true,
+      };
+
+      cursorRef.current = next;
+      setCursor(next);
+
+      rafRef.current = window.requestAnimationFrame(animate);
+    };
+
+    rafRef.current = window.requestAnimationFrame(animate);
+
+    return () => window.cancelAnimationFrame(rafRef.current);
+  }, [active]);
 
   const readKeyUnderCursor = useCallback(() => {
-    const stage = document.querySelector('.camera-stage');
+    const stage = stageRef.current;
     if (!stage) return null;
 
     const rect = stage.getBoundingClientRect();
-    const cursorX = rect.left + cursor.x * rect.width;
-    const cursorY = rect.top + cursor.y * rect.height;
+    const cursorX = rect.left + cursorRef.current.x * rect.width;
+    const cursorY = rect.top + cursorRef.current.y * rect.height;
 
     for (const [key, element] of Object.entries(buttonRefs.current)) {
       if (!element) continue;
@@ -70,13 +140,13 @@ export function GesturePinStage({
     }
 
     return null;
-  }, [cursor.x, cursor.y]);
+  }, []);
 
   const clickKey = useCallback((key) => {
     if (!key || pinBusy) return;
 
     setPressedKey(key);
-    window.setTimeout(() => setPressedKey(''), 160);
+    window.setTimeout(() => setPressedKey(''), 120);
 
     if (key === 'clear') {
       onPinChange(pin.slice(0, -1));
@@ -84,7 +154,7 @@ export function GesturePinStage({
     }
 
     if (key === 'ok') {
-      onPinSubmit(pin);
+      if (pin.length === 4) onPinSubmit(pin);
       return;
     }
 
@@ -96,17 +166,26 @@ export function GesturePinStage({
     if (!active || !gestureResult?.click) return;
 
     const now = Date.now();
-    if (now - lastGestureClickRef.current < 520) return;
+
+    // Prevent accidental double-clicks caused by noisy open/closed transitions.
+    if (now - lastGestureClickRef.current < 650) return;
+    if (cursorSpeedRef.current > 0.08) return;
+
     lastGestureClickRef.current = now;
 
     const key = readKeyUnderCursor();
     if (key) clickKey(key);
   }, [active, clickKey, gestureResult?.click, readKeyUnderCursor]);
 
+  const statusText = useMemo(
+    () => getPinStatusText({ gestureState, cursorActive, pinBusy }),
+    [gestureState, cursorActive, pinBusy]
+  );
+
   if (!active) return null;
 
   return (
-    <div className="gesture-pin-stage">
+    <div className="gesture-pin-stage" ref={stageRef}>
       <div className="side-blur-panel left-panel">
         <AccessDetailsPanel student={student} authResult={authResult} />
       </div>
@@ -125,21 +204,15 @@ export function GesturePinStage({
 
       <section className="phone-keyboard" aria-label="Gesture PIN keyboard">
         <div className="pin-header">
-          <button type="button" onClick={onBack}>←</button>
+          <button type="button" onClick={onBack} aria-label="Back to camera">←</button>
           <div>
-            <strong>Enter your PIN</strong>
-            <span>
-              {gestureState === 'tracking'
-                ? cursorActive
-                  ? 'MediaPipe cursor active'
-                  : 'Show a closed hand to display cursor'
-                : gestureState}
-            </span>
+            <strong>Entrer le PIN</strong>
+            <span>{statusText}</span>
           </div>
         </div>
 
-        <div className="pin-dots" aria-label="PIN length">
-          {Array.from({ length: Math.max(4, pin.length || 0) }).map((_, index) => (
+        <div className="pin-dots" aria-label={`PIN contains ${pin.length} digits`}>
+          {Array.from({ length: 4 }).map((_, index) => (
             <span key={index} className={index < pin.length ? 'filled' : ''} />
           ))}
         </div>
@@ -163,7 +236,8 @@ export function GesturePinStage({
             type="button"
             className="phone-key utility"
             onClick={() => clickKey('clear')}
-            disabled={pinBusy}
+            disabled={pinBusy || pin.length === 0}
+            aria-label="Delete last digit"
           >
             ⌫
           </button>
@@ -183,20 +257,13 @@ export function GesturePinStage({
             type="button"
             className="phone-key ok"
             onClick={() => clickKey('ok')}
-            disabled={pinBusy || !pin}
+            disabled={pinBusy || pin.length !== 4}
           >
             OK
           </button>
         </div>
 
-        <p className="pin-hint">
-          {pinBusy
-            ? 'Checking PIN…'
-            : cursorActive
-              ? 'Move closed hand. Open to click.'
-              : 'Waiting for MediaPipe hand detection…'}
-        </p>
-
+        <p className="pin-hint">{statusText}</p>
         {pinError && <p className="pin-error">{pinError}</p>}
       </section>
     </div>

@@ -10,9 +10,12 @@ router = APIRouter(tags=["gesture-pin"])
 @router.websocket("/ws/gesture-pin")
 async def ws_gesture_pin(websocket: WebSocket):
     await websocket.accept()
-    print("✅ /ws/gesture-pin connected")
 
-    tracker = MediaPipeHandGestureTracker()
+    tracker = MediaPipeHandGestureTracker(
+        min_hand_detection_confidence=0.45,
+        min_hand_presence_confidence=0.45,
+        min_tracking_confidence=0.55,
+    )
 
     await websocket.send_json({
         "type": "gesture_status",
@@ -21,17 +24,12 @@ async def ws_gesture_pin(websocket: WebSocket):
         "cursor": None,
         "click": False,
         "confidence": 0,
-        "error": "" if tracker.ready else "MediaPipe Hands is not ready",
+        "error": "" if tracker.ready else "MediaPipe HandLandmarker is not ready",
     })
-
-    frame_count = 0
 
     try:
         while True:
             frame_bytes = await websocket.receive_bytes()
-            frame_count += 1
-
-            print(f"📸 gesture frame received #{frame_count}: {len(frame_bytes)} bytes")
 
             if not frame_bytes:
                 await websocket.send_json({
@@ -47,9 +45,7 @@ async def ws_gesture_pin(websocket: WebSocket):
 
             try:
                 frame = decode_uploaded_image(frame_bytes)
-                print(f"🖼 decoded gesture frame shape: {getattr(frame, 'shape', None)}")
             except Exception as exc:
-                print(f"❌ frame decode failed: {exc}")
                 await websocket.send_json({
                     "type": "gesture",
                     "hand_detected": False,
@@ -65,14 +61,11 @@ async def ws_gesture_pin(websocket: WebSocket):
             payload = result.to_dict()
             payload["type"] = "gesture"
 
-            print("🖐 gesture result:", payload)
-
             await websocket.send_json(payload)
 
     except WebSocketDisconnect:
-        print("🔌 /ws/gesture-pin disconnected")
+        pass
     except Exception as exc:
-        print(f"❌ /ws/gesture-pin crashed: {exc}")
         try:
             await websocket.send_json({
                 "type": "gesture",

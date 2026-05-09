@@ -30,7 +30,3 @@ python-jose
 argon2-cffi
 mediapipe
 cryptography>=42.0.0
-<<<<<<< HEAD
-slowapi
-=======
->>>>>>> bcc8c0c454eee9ac371939774e96b642ec9f5247

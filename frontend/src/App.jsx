@@ -147,10 +147,10 @@ useEffect(() => {
     return;
   }
 
-    requestAuthorization({
-      targetKey: `${currentTargetKey}:${Date.now()}`,
-      targetId: primaryDetection.target_id,
-    });
+  requestAuthorization({
+    targetKey: currentTargetKey,
+    targetId: primaryDetection.target_id,
+  });
 }, [
   accessFlash,
   authState,
@@ -177,7 +177,7 @@ useEffect(() => {
       return () => window.clearTimeout(timer);
     }
 
-    if (authState === 'success' && authResult?.authorized) {
+if (authState === 'success' && Number(authResult?.authorized) === 1) {
       setAccessFlash('authorized');
 
       const timer = window.setTimeout(() => {

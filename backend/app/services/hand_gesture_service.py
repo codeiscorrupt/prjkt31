@@ -156,28 +156,55 @@ class MediaPipeHandGestureTracker:
             )
 
     def _cursor_from_landmarks(self, landmarks) -> dict[str, float]:
-        # Landmark 9 is near the palm center / middle finger MCP.
-        point = landmarks[9]
+        # Palm center is much more stable than fingertip for PIN selection.
+        wrist = landmarks[0]
+        index_mcp = landmarks[5]
+        middle_mcp = landmarks[9]
+        ring_mcp = landmarks[13]
+        pinky_mcp = landmarks[17]
+
+        x = (
+            wrist.x * 0.20 +
+            index_mcp.x * 0.20 +
+            middle_mcp.x * 0.25 +
+            ring_mcp.x * 0.20 +
+            pinky_mcp.x * 0.15
+        )
+
+        y = (
+            wrist.y * 0.20 +
+            index_mcp.y * 0.20 +
+            middle_mcp.y * 0.25 +
+            ring_mcp.y * 0.20 +
+            pinky_mcp.y * 0.15
+        )
 
         return {
-            "x": min(1.0, max(0.0, float(point.x))),
-            "y": min(1.0, max(0.0, float(point.y))),
+            "x": min(1.0, max(0.0, float(x))),
+            "y": min(1.0, max(0.0, float(y))),
         }
 
-    def _classify_open_closed(self, landmarks) -> str:
-        # New Tasks landmarks have .x, .y, .z just like old solutions landmarks.
-        finger_pairs = (
-            (8, 6),    # index
-            (12, 10),  # middle
-            (16, 14),  # ring
-            (20, 18),  # pinky
-        )
+    def _distance(self, a, b) -> float:
+        return float(((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2) ** 0.5)
 
-        extended = sum(
-            1
-            for tip, pip in finger_pairs
-            if landmarks[tip].y < landmarks[pip].y
-        )
+    def _classify_open_closed(self, landmarks) -> str:
+        wrist = landmarks[0]
+        middle_mcp = landmarks[9]
+
+        palm_size = max(self._distance(wrist, middle_mcp), 1e-6)
+
+        finger_tips = (8, 12, 16, 20)
+        finger_mcps = (5, 9, 13, 17)
+
+        extended = 0
+
+        for tip_idx, mcp_idx in zip(finger_tips, finger_mcps):
+            tip_distance = self._distance(landmarks[tip_idx], wrist)
+            mcp_distance = self._distance(landmarks[mcp_idx], wrist)
+
+            # Finger is extended if fingertip is clearly farther from wrist than MCP.
+            if tip_distance > mcp_distance + palm_size * 0.28:
+                extended += 1
 
         if extended >= 3:
             return "open"
