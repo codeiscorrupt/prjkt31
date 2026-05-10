@@ -30,6 +30,8 @@ export default function App() {
   const [accessFlash, setAccessFlash] = useState('');
 
   const overlayRef = useRef(null);
+  const lastFaceSeenAtRef = useRef(Date.now());
+
 
   const pushLog = useCallback((message) => {
     setLogs((previous) => [
@@ -83,6 +85,20 @@ export default function App() {
     onLog: pushLog,
   });
 
+
+
+  const resetAccessSession = useCallback(() => {
+  console.log('[APP] Resetting full access session');
+
+  resetFlow();
+  resetAuthorization();
+
+  setAccessFlash('');
+  setDetections([]);
+  setLastDetectResponse(null);
+  setDetectionEnabled(true);
+}, [resetFlow, resetAuthorization]);
+
   const handleDetectionResult = useCallback((result) => {
     const nextDetections = Array.isArray(result.detections) ? result.detections : [];
     setDetections(nextDetections);
@@ -130,6 +146,14 @@ export default function App() {
 
   const primaryDetection = detections[0] || null;
   const currentTargetKey = buildTargetKey(primaryDetection);
+
+
+  useEffect(() => {
+  if (primaryDetection) {
+    lastFaceSeenAtRef.current = Date.now();
+  }
+}, [primaryDetection]);
+
 
   useEffect(() => {
     if (cameraState === 'idle' || cameraState === 'stopped') {
@@ -269,6 +293,26 @@ if (authState === 'success' && Number(authResult?.authorized) === 1) {
     sensitiveToken &&
     student;
 
+
+  useEffect(() => {
+  const shouldWatchPresence =
+    currentView === 'authorized-pause' ||
+    currentView === 'pin-verification';
+
+  if (!shouldWatchPresence) return;
+
+  const interval = window.setInterval(() => {
+    const absentForMs = Date.now() - lastFaceSeenAtRef.current;
+
+    if (absentForMs > 3000) {
+      console.log('[APP] Face lost during auth/PIN flow. Restarting authorization.');
+      resetAccessSession();
+    }
+  }, 500);
+
+  return () => window.clearInterval(interval);
+}, [currentView, resetAccessSession]);
+
   return (
     <div className={`access-app view-${currentView}`}>
       <div className="background-grid" aria-hidden="true" />
@@ -303,7 +347,7 @@ if (authState === 'success' && Number(authResult?.authorized) === 1) {
               gestureResult={gestureResult}
               onPinChange={setPin}
               onPinSubmit={handlePinSubmit}
-              onBack={handleBackToCamera}
+              onBack={resetAccessSession}
             />
           )}
         </CameraPanel>

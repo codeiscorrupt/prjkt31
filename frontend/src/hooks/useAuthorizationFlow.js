@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendAuthorizationFrame } from '../services/recognitionApi.js';
 
 export const AUTH_STATUS = {
@@ -9,99 +9,171 @@ export const AUTH_STATUS = {
 
 function normalizeAuthorized(value) {
   const numeric = Number(value);
+
   if (numeric === AUTH_STATUS.AUTHORIZED) return AUTH_STATUS.AUTHORIZED;
   if (numeric === AUTH_STATUS.UNAUTHORIZED) return AUTH_STATUS.UNAUTHORIZED;
+
   return AUTH_STATUS.PENDING;
 }
 
-export function useAuthorizationFlow({ authorizeUrl, cameraId, captureFrameBlob, onLog }) {
+export function useAuthorizationFlow({
+  authorizeUrl,
+  cameraId,
+  captureFrameBlob,
+  onLog,
+}) {
   const activeTargetKeyRef = useRef(null);
   const busyRef = useRef(false);
   const lastAttemptAtRef = useRef(0);
+  const authStateRef = useRef('idle');
 
   const [authState, setAuthState] = useState('idle');
   const [authResult, setAuthResult] = useState(null);
 
-  const resetAuthorization = useCallback(() => {
-    activeTargetKeyRef.current = null;
-    busyRef.current = false;
-    setAuthState('idle');
-    setAuthResult(null);
+  useEffect(() => {
+    authStateRef.current = authState;
+  }, [authState]);
+
+  const setAuthStateSafe = useCallback((nextState) => {
+    authStateRef.current = nextState;
+    setAuthState(nextState);
   }, []);
 
-  const requestAuthorization = useCallback(async ({ targetKey, targetId }) => {
+  const resetAuthorization = useCallback(() => {
+    console.log('[AUTH] resetAuthorization');
 
-    if (!targetKey) return;
+    activeTargetKeyRef.current = null;
+    busyRef.current = false;
+    lastAttemptAtRef.current = 0;
 
-    const now = Date.now();
-
-    // Avoid sending a heavy DeepFace request too often.
-    if (now - lastAttemptAtRef.current < 1200) return;
-
-    // Do not re-authorize the same stable target while it is already being processed.
-    if (busyRef.current) return;
-
-    // If same target already reached a final state, do not spam backend.
-    if (
-      activeTargetKeyRef.current === targetKey &&
-      (authState === 'success' || authState === 'denied')
-    ) {
-      return;
-    }
-
-    busyRef.current = true;
-    lastAttemptAtRef.current = now;
-    activeTargetKeyRef.current = targetKey;
-
-    setAuthState('loading');
+    setAuthStateSafe('idle');
     setAuthResult(null);
-    onLog?.(`Authorizing ${targetId || targetKey}...`);
+  }, [setAuthStateSafe]);
 
-    try {
-      const blob = await captureFrameBlob();
-      if (!blob) {
-        setAuthState('idle');
+  const requestAuthorization = useCallback(
+    async ({ targetKey, targetId }) => {
+      console.log('[AUTH] requestAuthorization called', {
+        targetKey,
+        targetId,
+        authState: authStateRef.current,
+        activeTargetKey: activeTargetKeyRef.current,
+        busy: busyRef.current,
+      });
+
+      if (!targetKey) {
+        console.log('[AUTH] skipped: missing targetKey');
         return;
       }
 
-      const result = await sendAuthorizationFrame({
-        authorizeUrl,
-        blob,
-        timestamp: new Date().toISOString(),
-        cameraId,
-        targetId,
-      });
+      const now = Date.now();
 
-      const authorized = normalizeAuthorized(result.authorized);
-      const normalizedResult = {
-        ...result,
-        authorized,
-      };
-
-      setAuthResult(normalizedResult);
-
-      if (authorized === AUTH_STATUS.AUTHORIZED) {
-        setAuthState('success');
-      } else if (authorized === AUTH_STATUS.UNAUTHORIZED) {
-        setAuthState('denied');
-      } else {
-        setAuthState('pending');
+      if (now - lastAttemptAtRef.current < 1200) {
+        console.log('[AUTH] skipped: throttle');
+        return;
       }
-        // ... rest of function
-    
-      onLog?.(result.message || 'Authorization updated.');
-    } catch (error) {
-      setAuthState('error');
-      setAuthResult({
-        ok: false,
-        authorized: AUTH_STATUS.UNAUTHORIZED,
-        message: error instanceof Error ? error.message : 'Authorization failed',
-      });
-      onLog?.(`Authorization error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      busyRef.current = false;
-    }
-  }, [authState, authorizeUrl, cameraId, captureFrameBlob, onLog]);
+
+      if (busyRef.current) {
+        console.log('[AUTH] skipped: busy');
+        return;
+      }
+
+      const currentAuthState = authStateRef.current;
+
+      if (
+        activeTargetKeyRef.current === targetKey &&
+        (currentAuthState === 'success' || currentAuthState === 'denied')
+      ) {
+        console.log('[AUTH] skipped: same target already final', {
+          targetKey,
+          currentAuthState,
+        });
+        return;
+      }
+
+      busyRef.current = true;
+      lastAttemptAtRef.current = now;
+      activeTargetKeyRef.current = targetKey;
+
+      setAuthStateSafe('loading');
+      setAuthResult(null);
+
+      onLog?.(`Authorizing ${targetId || targetKey}...`);
+
+      try {
+        const blob = await captureFrameBlob();
+
+        if (!blob) {
+          console.log('[AUTH] skipped: no frame blob');
+
+          activeTargetKeyRef.current = null;
+          busyRef.current = false;
+          setAuthStateSafe('idle');
+
+          return;
+        }
+
+        const result = await sendAuthorizationFrame({
+          authorizeUrl,
+          blob,
+          timestamp: new Date().toISOString(),
+          cameraId,
+          targetId,
+        });
+
+        const authorized = normalizeAuthorized(result.authorized);
+
+        const normalizedResult = {
+          ...result,
+          authorized,
+        };
+
+        console.log('[AUTH] backend result', normalizedResult);
+
+        setAuthResult(normalizedResult);
+
+        if (authorized === AUTH_STATUS.AUTHORIZED) {
+          setAuthStateSafe('success');
+          onLog?.(result.message || 'Face authorized.');
+          return;
+        }
+
+        if (authorized === AUTH_STATUS.UNAUTHORIZED) {
+          setAuthStateSafe('denied');
+          onLog?.(result.message || 'Face denied.');
+          return;
+        }
+
+        setAuthStateSafe('pending');
+        onLog?.(result.message || 'Authorization pending. Retrying...');
+      } catch (error) {
+        console.error('[AUTH] authorization error', error);
+
+        setAuthStateSafe('error');
+
+        setAuthResult({
+          ok: false,
+          authorized: AUTH_STATUS.UNAUTHORIZED,
+          message:
+            error instanceof Error ? error.message : 'Authorization failed',
+        });
+
+        onLog?.(
+          `Authorization error: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        );
+      } finally {
+        busyRef.current = false;
+      }
+    },
+    [
+      authorizeUrl,
+      cameraId,
+      captureFrameBlob,
+      onLog,
+      setAuthStateSafe,
+    ]
+  );
 
   return {
     authState,

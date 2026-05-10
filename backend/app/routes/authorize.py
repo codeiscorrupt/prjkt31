@@ -3,9 +3,22 @@ from requests import Session
 from app.services.authorization_service import run_target_authorization
 from app.services.image_decoder import decode_uploaded_image
 from app.db.database import get_db
+from app.services.face_cache import face_cache
 from app.core.rate_limit import limiter
 
 router = APIRouter(tags=["authorization"])
+
+
+
+@router.post('/authorize/reset')
+def reset_authorization_cache(camera_id: str | None = Form(default=None)):
+    client_key = camera_id or "default-client"
+    face_cache.reset(client_key)
+    return {
+        "ok": True,
+        "message": "Authorization cache reset",
+        "client_key": client_key,
+    }
 
 @router.post('/authorize')
 @limiter.limit("20/minute")

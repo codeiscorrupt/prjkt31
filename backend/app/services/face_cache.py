@@ -12,6 +12,14 @@ class FaceConsensusCache:
         self._store: Dict[str, dict] = {}  # {client_id: {"queue": deque, "created": float}}
         self._lock = threading.Lock()
 
+    def reset(self, client_id: str) -> None:
+        with self._lock:
+            self._store.pop(client_id, None)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._store.clear()
+
     def record(self, client_id: str, user_id: int) -> Tuple[Optional[int], int]:
         """Adds a match to FIFO cache. Returns (winning_user_id or None, current_vote_count)"""
         with self._lock:
