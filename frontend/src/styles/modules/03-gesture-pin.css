@@ -41,7 +41,7 @@
   top: 54%;
   transform: translate(-50%, -50%);
   width: min(28vw, 340px);
-  min-width: 250px;
+  min-width: 400px;
   padding: clamp(12px, 1.8vw, 18px);
   border: 1px solid rgba(226,232,240,0.20);
   border-radius: 30px;
@@ -112,7 +112,7 @@
 }
 @keyframes cursorRing { to { transform: scale(2.1); opacity: 0; } }
 
-.panel-eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 12px; letter-spacing: 0.13em; text-transform: uppercase; font-weight: 900; }
+.panel-eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 20px; letter-spacing: 0.13em; text-transform: uppercase; font-weight: 900; }
 .access-details-panel h2, .gesture-guide-panel h2 { margin: 0; font-size: clamp(21px, 2.2vw, 30px); }
 .access-message, .guide-copy { color: var(--muted); line-height: 1.5; margin: 10px 0 18px; }
 .access-detail-list { display: grid; gap: 10px; }

@@ -77,6 +77,7 @@ export function drawDetectionScene({
   detections = [],
   authState = 'idle',
   authResult = null,
+  mode = 'full',
   nowMs = performance.now(),
 }) {
   if (!canvas || !video) return;
@@ -87,6 +88,11 @@ export function drawDetectionScene({
   const width = video.clientWidth;
   const height = video.clientHeight;
   if (!width || !height) return;
+
+  if (mode === 'mini') {
+    ctx.clearRect(0, 0, width, height); // Clear any previous drawings whan camera panel mode is mini
+    return;
+  }
 
   // 🖼️ High-DPI support & resize guard (prevents flicker & CPU thrashing)
   const dpr = window.devicePixelRatio || 1;
@@ -141,5 +147,5 @@ export function drawDetectionScene({
 
   ctx.fillStyle = '#e2e8f0';
   ctx.font = '12px Arial';
-  ctx.fillText(primary.label || 'Tracking person', x, Math.min(rect.offsetY + rect.renderedHeight - 12, y + boxHeight + 18));
+  ctx.fillText('Tracking person', x, Math.min(rect.offsetY + rect.renderedHeight - 12, y + boxHeight + 18));
 }

@@ -28,7 +28,6 @@ export default function App() {
   const [health, setHealth] = useState(null);
   const [healthError, setHealthError] = useState('');
   const [accessFlash, setAccessFlash] = useState('');
-
   const overlayRef = useRef(null);
 
   const pushLog = useCallback((message) => {
@@ -57,6 +56,7 @@ export default function App() {
     authState,
     authResult,
     requestAuthorization,
+    token,
     resetAuthorization,
   } = useAuthorizationFlow({
     authorizeUrl: APP_CONFIG.authorizeUrl,
@@ -248,6 +248,7 @@ if (authState === 'success' && Number(authResult?.authorized) === 1) {
         detections,
         authState,
         authResult,
+        mode: inSecureData ? 'mini' : 'full',
         nowMs: now,
       });
 
@@ -297,6 +298,7 @@ if (authState === 'success' && Number(authResult?.authorized) === 1) {
               student={student}
               authResult={authResult}
               pin={pin}
+              token={token}
               pinBusy={pinBusy}
               pinError={pinError}
               gestureState={gestureState}

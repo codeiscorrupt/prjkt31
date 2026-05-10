@@ -140,9 +140,29 @@ export function SecureAccessView({ token, student, pin, authResult, apiBaseUrl, 
   return (
     <main className="secure-access-layout">
       <aside className="secure-left-rail" aria-label="Camera and authorization details">
-        <div className="mini-camera-label">Caméra active</div>
+        <pre>
+          <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+        </pre>
+
+        {/* <div className="mini-camera-label">Caméra active</div>
         <AccessDetailsPanel student={profile} authResult={authResult} compact />
-        <button className="secure-logout" type="button" onClick={onLogout}>Retour caméra</button>
+        <button className="secure-logout" type="button" onClick={onLogout}>Retour caméra</button> */}
+
+        <DataCard title="Prochaine séance" className="secure-data-card-wide">
+            {data.seance ? (
+              <div className="secure-info-list">
+                <div><span>Module</span><strong>{data.seance.module || '—'}</strong></div>
+                <div><span>Salle</span><strong>{data.seance.salle || '—'}</strong></div>
+                <div><span>Date</span><strong>{formatDate(data.seance.date_seance)}</strong></div>
+                <div>
+                  <span>Heure</span>
+                  <strong>{(data.seance.heure_debut || '—') + ' → ' + (data.seance.heure_fin || '—')}</strong>
+                </div>
+              </div>
+            ) : (
+              <p className="empty-data">Aucune séance enregistrée.</p>
+            )}
+          </DataCard>
       </aside>
 
       <section className="secure-data-space">
@@ -169,6 +189,7 @@ export function SecureAccessView({ token, student, pin, authResult, apiBaseUrl, 
               <div><span>Prénom</span><strong>{profile.prenom || '—'}</strong></div>
               <div><span>Sexe</span><strong>{profile.sexe || '—'}</strong></div>
               <div><span>Filière</span><strong>{profile.filiere || '—'}</strong></div>
+              <div><span>Date de Naissance</span><strong>{profile.date_naissance || '—'}</strong></div>
             </div>
           </DataCard>
 
@@ -177,22 +198,6 @@ export function SecureAccessView({ token, student, pin, authResult, apiBaseUrl, 
               <div><span>CNE</span><strong>{data.identite?.cne || '—'}</strong></div>
               <div><span>CIN</span><strong>{data.identite?.cin || '—'}</strong></div>
             </div>
-          </DataCard>
-
-          <DataCard title="Prochaine séance" className="secure-data-card-wide">
-            {data.seance ? (
-              <div className="secure-info-list">
-                <div><span>Module</span><strong>{data.seance.module || '—'}</strong></div>
-                <div><span>Salle</span><strong>{data.seance.salle || '—'}</strong></div>
-                <div><span>Date</span><strong>{formatDate(data.seance.date_seance)}</strong></div>
-                <div>
-                  <span>Heure</span>
-                  <strong>{(data.seance.heure_debut || '—') + ' → ' + (data.seance.heure_fin || '—')}</strong>
-                </div>
-              </div>
-            ) : (
-              <p className="empty-data">Aucune séance enregistrée.</p>
-            )}
           </DataCard>
 
           <DataCard title="Notes" className="secure-data-card-wide">

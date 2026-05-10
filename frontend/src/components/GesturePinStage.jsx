@@ -22,6 +22,7 @@ export function GesturePinStage({
   student,
   authResult,
   pin,
+  token,
   pinBusy,
   pinError,
   gestureState,
@@ -187,7 +188,7 @@ export function GesturePinStage({
   return (
     <div className="gesture-pin-stage" ref={stageRef}>
       <div className="side-blur-panel left-panel">
-        <AccessDetailsPanel student={student} authResult={authResult} />
+        <AccessDetailsPanel student={student} authResult={authResult} token={token} />
       </div>
 
       <div className="clear-camera-window" aria-hidden="true" />
@@ -207,7 +208,6 @@ export function GesturePinStage({
           <button type="button" onClick={onBack} aria-label="Back to camera">←</button>
           <div>
             <strong>Entrer le PIN</strong>
-            <span>{statusText}</span>
           </div>
         </div>
 

@@ -38,8 +38,8 @@ def run_target_authorization(
                 # Person recognized: authorized = 1
                 if "etudiant" in data.keys() and data["etudiant"]:
                     student = data.get("etudiant")
-                    print(f"✅ Logged in as {student['nom']} {student['prenom']}")
-                    msg = f"✅ Logged in as {student['nom']} {student['prenom']}"
+                    print(f"✅ Recognized as {student['nom']} {student['prenom']}")
+                    msg = f"✅ Utilisateur Reconnu : {student['nom']} {student['prenom']}"
                     token = data.get("access_token")
                     authorized = 1
 

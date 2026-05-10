@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { use, useCallback, useRef, useState } from 'react';
 import { sendAuthorizationFrame } from '../services/recognitionApi.js';
 
 export const AUTH_STATUS = {
@@ -18,7 +18,7 @@ export function useAuthorizationFlow({ authorizeUrl, cameraId, captureFrameBlob,
   const activeTargetKeyRef = useRef(null);
   const busyRef = useRef(false);
   const lastAttemptAtRef = useRef(0);
-
+  const [token, setToken] = useState(null);
   const [authState, setAuthState] = useState('idle');
   const [authResult, setAuthResult] = useState(null);
 
@@ -73,6 +73,9 @@ export function useAuthorizationFlow({ authorizeUrl, cameraId, captureFrameBlob,
       });
 
       const authorized = normalizeAuthorized(result.authorized);
+      if (result.token){
+        setToken(result.token)
+      }
       const normalizedResult = {
         ...result,
         authorized,
@@ -106,6 +109,7 @@ export function useAuthorizationFlow({ authorizeUrl, cameraId, captureFrameBlob,
   return {
     authState,
     authResult,
+    token,
     requestAuthorization,
     resetAuthorization,
   };
