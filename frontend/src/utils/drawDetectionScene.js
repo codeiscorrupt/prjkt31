@@ -33,10 +33,8 @@ function getVisualState(authState, authResult) {
   if (authState === 'denied' || (authState === 'error' && authResult)) {
     return { stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.12)', label: 'ACCESS DENIED', labelBackground: '#ef4444', scan: false };
   }
-  if (authState === 'loading') {
-    return { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.12)', label: 'AUTHORIZING...', labelBackground: '#f59e0b', scan: true };
-  }
-  return { stroke: '#38bdf8', fill: 'rgba(56, 189, 248, 0.10)', label: 'TRACKING TARGET', labelBackground: '#38bdf8', scan: true };
+  //return { stroke: '#38bdf8', fill: 'rgba(245, 158, 11, 0.12)', label: 'AUTHORIZING...', labelBackground: '#38bdf8', scan: true };
+  return { stroke: '#38bdf8', fill: 'rgba(56, 189, 248, 0.10)', label: 'AUTHORIZING...', labelBackground: '#38bdf8', scan: true };
 }
 
 function drawTargetBox(ctx, x, y, width, height, visualState) {
@@ -90,7 +88,7 @@ export function drawDetectionScene({
   if (!width || !height) return;
 
   if (mode === 'mini') {
-    ctx.clearRect(0, 0, width, height); // Clear any previous drawings whan camera panel mode is mini
+    ctx.clearRect(0, 0, width, height); // Clear any previous drawings whan camera panel mode is mini (not working)
     return;
   }
 
