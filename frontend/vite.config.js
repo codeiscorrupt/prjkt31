@@ -7,7 +7,7 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     allowedHosts: [
-      'transphysically-valorous-vanesa.ngrok-free.dev',
+      'nonmetallurgical-jovita-securely.ngrok-free.dev',
     ],
     proxy: {
       "/api": {

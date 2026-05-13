@@ -99,6 +99,7 @@ def run_target_authorization(
             'frame_size': {'width': width, 'height': height}
             } 
         }
+    print("processing time = ", output["meta"]["processing_ms"])
     return output
 
 def face_auth(face_embedding: list[float], client_id: str = "client_id", db: Session = None):
@@ -132,6 +133,7 @@ def face_auth(face_embedding: list[float], client_id: str = "client_id", db: Ses
             message="Aucune correspondance trouvée"
         )
     bio, score = result
+    print("distance = : ", score)
     if score > threshold:
         return FacePendingResponse(
             status="no_match", progress=0, matches_needed=0, 

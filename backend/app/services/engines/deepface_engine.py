@@ -4,7 +4,7 @@ import cv2
 from deepface import DeepFace
 
 ANALYSIS_SCALE = 0.5
-MODEL_NAME = 'SFace'
+MODEL_NAME = 'ArcFace'
 DETECTOR_BACKEND = 'opencv'
 
 
