@@ -31,7 +31,8 @@ def run_target_authorization(
     embedding = build_embedding(frame)
     try:
         if embedding:
-            response = face_auth(embedding, db=db)
+            client_key = camera_id or target_id or "default-client"
+            response = face_auth(embedding, client_id=client_key, db=db)
             data = response.model_dump()
 
             if data:
