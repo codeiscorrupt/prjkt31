@@ -218,10 +218,9 @@ export function SecureAccessView({ token, student, pin, authResult, apiBaseUrl, 
               empty="Aucune absence trouvée."
               rows={data.absences}
               columns={[
-                { key: 'date', label: 'Date', render: (row) => formatDate(row.date) },
-                { key: 'module', label: 'Module' },
-                { key: 'type', label: 'Type' },
-                { key: 'justified', label: 'Justifiée', render: (row) => row.justified ? 'Oui' : 'Non' },
+                { key: 'module', label: 'Module', render: (row) => row.seance?.module || '—' },
+                { key: 'date', label: 'Date', render: (row) => formatDate(row.seance?.date_seance) },
+                { key: 'justified', label: 'Justifiée', render: (row) => row.justifie ? 'Oui' : 'Non' },
               ]}
             />
           </DataCard>

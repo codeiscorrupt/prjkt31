@@ -18,6 +18,7 @@ class UnknownFaceCache:
         self.threshold = threshold
         self.metric = metric.lower()
         self.ttl = ttl_seconds
+        self.required_nbr = required_nbr
         
         # FIFO store: each item = {"id": int, "embedding": np.ndarray, "timestamp": float}
         self._store: deque = deque(maxlen=self.max_size)
@@ -39,27 +40,20 @@ class UnknownFaceCache:
         else:
             raise ValueError(f"Unsupported distance metric: {self.metric}")
         
-    def check_consensus(self, required_nbr: int) -> Tuple[bool, Optional[int], int]:
-        """
-        Scans the FIFO cache to see if ANY face ID has appeared `required_nbr` times.
-        Returns: (has_consensus: bool, winning_id: Optional[int], highest_count: int)
-        """
-        with self._lock:
-            votes: Dict[int, int] = {}
-            max_count = 0
+    def check_consensus(self) -> bool:
+        """Internal version — assumes lock is already held."""
+        votes: Dict[int, int] = {}
+        max_count = 0
 
-            for item in self._store:
-                uid = item["id"]
-                count = votes.get(uid, 0) + 1
-                votes[uid] = count
+        for item in self._store:
+            uid = item["id"]
+            count = votes.get(uid, 0) + 1
+            votes[uid] = count
+            if count > max_count:
+                max_count = count
 
-                if count > max_count:
-                    max_count = count
-                    winning_id = uid
+        return max_count >= self.required_nbr
 
-            if max_count >= required_nbr:
-                return True
-            return False
         
     def register(self, embedding: Union[np.ndarray, list]) -> bool:
         """
@@ -68,7 +62,7 @@ class UnknownFaceCache:
             or   True (if an unknown face is reoccuring)
         """
         emb = self._to_numpy(embedding)
-        
+
         with self._lock:
             now = time.time()
             
@@ -79,22 +73,23 @@ class UnknownFaceCache:
                     maxlen=self.max_size
                 )
 
-            min_dist = float("inf")
+            best_id = None
+            best_dist = float("inf")
 
-            # Linear scan against all cached embeddings
             for item in self._store:
                 dist = self._compute_distance(emb, item["embedding"])
-                if dist < min_dist:
-                    min_dist = dist
-                    if dist <= self.threshold:
-                        self._store.append({"id": item["id"], "embedding": emb, "timestamp": now})
-                        return self.check_consensus(self._store)
-                    
-                last_id = item["id"]
-            
-            self._next_id = last_id + 1
+                if dist <= self.threshold and dist < best_dist:
+                    best_dist = dist
+                    best_id = item["id"]
+
+            if best_id is not None:
+                self._store.append({"id": best_id, "embedding": emb, "timestamp": now})
+                return self.check_consensus()
+
+            self._next_id = self._next_id + 1
             self._store.append({"id": self._next_id, "embedding": emb, "timestamp": now})
-            return self.check_consensus(self._store)
+
+            return self.check_consensus()
 
 # Global singleton instance
 unknown_faces_cache = UnknownFaceCache()

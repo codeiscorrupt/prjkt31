@@ -119,8 +119,8 @@ export default function App() {
 
   const detectEnabledForView =
     detectionEnabled &&
-    cameraState === 'streaming' &&
-    currentView !== 'data-dashboard';
+    cameraState === 'streaming'; 
+    //&& currentView !== 'data-dashboard';
 
   const { detectState, scanNow } = useWebSocketDetection({
     wsUrl: APP_CONFIG.wsDetectUrl,

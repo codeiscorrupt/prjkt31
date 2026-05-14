@@ -133,9 +133,17 @@ def face_auth(face_embedding: list[float], client_id: str = "client_id", db: Ses
             status="no_match", progress=0, matches_needed=0, 
             message="Aucune correspondance trouvée"
         )
+    
     bio, score = result
     print("distance = : ", score)
     if score > threshold:
+        if unknown_faces_cache.register(embedding_vector):
+            return FaceAuthResponse(
+            access_token=None,
+            token_type="Unauthorized",
+            etudiant=None
+        )
+
         return FacePendingResponse(
             status="no_match", progress=0, matches_needed=0, 
             message="Visage non reconnu"

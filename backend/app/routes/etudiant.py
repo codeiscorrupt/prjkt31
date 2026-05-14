@@ -163,10 +163,12 @@ def get_absences(
     data = get_token_data(authorization.split(" ")[1])
     if data.get("role") != "sensible" or int(data.get("sub")) != id_etudiant:
         raise HTTPException(status_code=403, detail="Acces refuse")
-
-    return db.query(Absence).filter(
+    
+    absences = db.query(Absence).filter(
         Absence.id_etudiant == id_etudiant
     ).all()
+    print(absences[0].seance.module)
+    return absences
 
 # ─── photo ─────────────────────────────────
 

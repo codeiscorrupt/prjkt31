@@ -120,7 +120,7 @@ def detect_primary_face(frame, camera_id: str = "default") -> dict[str, Any] | N
     smoothed["w"] = _ALPHA * fw + (1 - _ALPHA) * smoothed["w"]
     smoothed["h"] = _ALPHA * fh + (1 - _ALPHA) * smoothed["h"]
 
-    if smoothed["w"] <= 200:
+    if smoothed["w"] <= 100:
         return None
 
     return {

@@ -7,7 +7,8 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     allowedHosts: [
-      'nonmetallurgical-jovita-securely.ngrok-free.dev',
+      '.trycloudflare.com',  // leading dot = any subdomain
+      '.ngrok-free.app',
     ],
     proxy: {
       "/api": {
