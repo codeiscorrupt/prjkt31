@@ -143,11 +143,6 @@ export function SecureAccessView({ token, student, pin, authResult, apiBaseUrl, 
         <pre>
           <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
         </pre>
-
-        {/* <div className="mini-camera-label">Caméra active</div>
-        <AccessDetailsPanel student={profile} authResult={authResult} compact />
-        <button className="secure-logout" type="button" onClick={onLogout}>Retour caméra</button> */}
-
         <DataCard title="Prochaine séance" className="secure-data-card-wide">
             {data.seance ? (
               <div className="secure-info-list">

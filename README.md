@@ -10,7 +10,7 @@ This app requires Python version 3.10 or 3.11
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate
+source .venv\\Scripts\\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```

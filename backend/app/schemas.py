@@ -14,7 +14,6 @@ class EtudiantBase(BaseModel):
     telephone: Optional[str] = None
     adresse: Optional[str] = None
     filiere: Optional[str] = None
-    photo_url: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class EtudiantMain(BaseModel):

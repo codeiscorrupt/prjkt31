@@ -26,15 +26,19 @@ function getContainRect(videoElement) {
   return { offsetX, offsetY, renderedWidth, renderedHeight, sourceWidth, sourceHeight };
 }
 
-function getVisualState(authState, authResult) {
+function getVisualState(authState, authResult, isMini = false) {
+  if(isMini){
+    if (authState === 'success' && authResult?.authorized) {
+      return { stroke: '#22c55e', fill: 'rgba(34, 197, 94, 0.12)', labelBackground: '#22c55e', scan: false };}
+  }
+
   if (authState === 'success' && authResult?.authorized) {
-    return { stroke: '#22c55e', fill: 'rgba(34, 197, 94, 0.12)', label: 'TARGET RECOGNIZED', labelBackground: '#22c55e', scan: false };
-  }
-  if (authState === 'denied' || (authState === 'error' && authResult)) {
-    return { stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.12)', label: 'ACCESS DENIED', labelBackground: '#ef4444', scan: false };
-  }
-  //return { stroke: '#38bdf8', fill: 'rgba(245, 158, 11, 0.12)', label: 'AUTHORIZING...', labelBackground: '#38bdf8', scan: true };
-  return { stroke: '#38bdf8', fill: 'rgba(56, 189, 248, 0.10)', label: 'AUTHORIZING...', labelBackground: '#38bdf8', scan: true };
+      return { stroke: '#22c55e', fill: 'rgba(34, 197, 94, 0.12)', label: 'TARGET RECOGNIZED', labelBackground: '#22c55e', scan: false };
+    }
+    if (authState === 'denied' || (authState === 'error' && authResult)) {
+      return { stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.12)', label: 'ACCESS DENIED', labelBackground: '#ef4444', scan: false };
+    }
+    return { stroke: '#38bdf8', fill: 'rgba(56, 189, 248, 0.10)', label: 'AUTHORIZING...', labelBackground: '#38bdf8', scan: true };
 }
 
 function drawTargetBox(ctx, x, y, width, height, visualState) {
@@ -87,10 +91,10 @@ export function drawDetectionScene({
   const height = video.clientHeight;
   if (!width || !height) return;
 
-  if (mode === 'mini') {
-    ctx.clearRect(0, 0, width, height); // Clear any previous drawings whan camera panel mode is mini (not working)
-    return;
-  }
+  // if (mode === 'mini') {
+  //   ctx.clearRect(0, 0, width, height); // Clear any previous drawings whan camera panel mode is mini (not working)
+  //   return;
+  // }
 
   // 🖼️ High-DPI support & resize guard (prevents flicker & CPU thrashing)
   const dpr = window.devicePixelRatio || 1;
@@ -117,12 +121,29 @@ export function drawDetectionScene({
   if (!primary) return;
 
   const bbox = primary.bbox || {};
-  const x = rect.offsetX + Number(bbox.x || 0) * scaleX;
-  const y = rect.offsetY + Number(bbox.y || 0) * scaleY;
-  const boxWidth = Number(bbox.width || 0) * scaleX;
-  const boxHeight = Number(bbox.height || 0) * scaleY;
+  let x = rect.offsetX + Number(bbox.x || 0) * scaleX;
+  let y = rect.offsetY + Number(bbox.y || 0) * scaleY;
+  let boxWidth = Number(bbox.width || 0) * scaleX;
+  let boxHeight = Number(bbox.height || 0) * scaleY;
 
-  const visualState = getVisualState(authState, authResult);
+  const isMini = mode === 'mini';
+  const visualState = getVisualState(authState, authResult, isMini);
+
+  const boxScaleMultiplier = isMini ? 1.8 : 1.0; // ← Enlarge box by 80% in mini mode
+  const minBoxSize = isMini ? 60 : 0; // ← Ensure box is never smaller than 60px visually
+  if (isMini) {
+    // Enlarge box around center point
+    const centerX = x + boxWidth / 2;
+    const centerY = y + boxHeight / 2;
+    
+    boxWidth = Math.max(boxWidth * boxScaleMultiplier, minBoxSize);
+    boxHeight = Math.max(boxHeight * boxScaleMultiplier, minBoxSize);
+    
+    // Re-center the enlarged box
+    x = centerX - boxWidth / 2;
+    y = centerY - boxHeight / 2;
+  }
+
   drawTargetBox(ctx, x, y, boxWidth, boxHeight, visualState);
 
   if (visualState.scan) {
@@ -130,20 +151,24 @@ export function drawDetectionScene({
   }
 
   // 🏷️ Labels
-  const label = visualState.label;
-  ctx.font = '700 14px Arial';
-  const labelWidth = ctx.measureText(label).width + 22;
-  const labelHeight = 30;
-  const labelX = x;
-  const labelY = Math.max(10, y - 40);
+  if(visualState.label){
+    const label = visualState.label;
+    ctx.font = '700 14px Arial';
+    const labelWidth = ctx.measureText(label).width + 22;
+    const labelHeight = 30;
+    const labelX = x;
+    const labelY = Math.max(10, y - 40);
 
-  ctx.fillStyle = visualState.labelBackground;
-  ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
-  ctx.fillStyle = '#020617';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, labelX + 11, labelY + labelHeight / 2);
+    ctx.fillStyle = visualState.labelBackground;
+    ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+    ctx.fillStyle = '#020617';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, labelX + 11, labelY + labelHeight / 2);
 
-  ctx.fillStyle = '#e2e8f0';
-  ctx.font = '12px Arial';
-  ctx.fillText('Tracking person', x, Math.min(rect.offsetY + rect.renderedHeight - 12, y + boxHeight + 18));
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '12px Arial';
+    if(!isMini){
+      ctx.fillText("Tracking person" , x, Math.min(rect.offsetY + rect.renderedHeight - 12, y + boxHeight + 18));
+    }
+  }
 }

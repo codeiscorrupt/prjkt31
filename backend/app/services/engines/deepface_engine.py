@@ -39,6 +39,7 @@ def detect_primary_face(frame) -> dict[str, Any] | None:
         actions=['gender'],
         enforce_detection=False,
         detector_backend=DETECTOR_BACKEND,
+        anti_spoofing=True,
         silent=True,
     )
     face_info = _first_item(result)

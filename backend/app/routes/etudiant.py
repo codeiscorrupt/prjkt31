@@ -12,68 +12,6 @@ import shutil, os, json
 
 router = APIRouter(prefix="/etudiant", tags=["Etudiant"])
 
-# ─── Register ───────────────────────────────────────────
-@router.post("/register", response_model=RegisterResponse)
-def register_etudiant(request: RegisterRequest, db: Session = Depends(get_db)):
-
-    pin = request.pin  #utilisé pour chiffrement
-
-    etudiant = Etudiant(
-        nom=request.nom,
-        prenom=request.prenom,
-        email=encrypt_field(request.email, pin),
-        filiere=request.filiere,
-        date_naissance=request.date_naissance,
-        sexe=request.sexe,
-        telephone=encrypt_field(request.telephone, pin),
-        adresse=encrypt_field(request.adresse, pin)
-    )
-    db.add(etudiant)
-    db.flush()
-
-    #PIN hashé (comme déjà fait)
-    auth = Auth(
-        id_etudiant=etudiant.id_etudiant,
-        role="etudiant",
-        pin_hash=hash_pin(request.pin)
-    )
-    db.add(auth)
-
-    #BIOMETRIE chiffrée
-    bio = Biometrie(
-        id_etudiant=etudiant.id_etudiant,
-        face_embedding=request.face_embedding
-    )
-    db.add(bio)
-
-    #IDENTITE chiffrée
-    if request.cne or request.cin:
-        identite = Identite(
-            id_etudiant=etudiant.id_etudiant,
-            cne=encrypt_field(request.cne, pin) if request.cne else None,
-            cin=encrypt_field(request.cin, pin) if request.cin else None
-        )
-        db.add(identite)
-
-    #NOTES NON CHIFFRÉES
-    if request.notes:
-        for n in request.notes:
-            note = Note(
-                id_etudiant=etudiant.id_etudiant,
-                module=n.get("module"),
-                note=n.get("note"),
-                session=n.get("session"),
-                annee=n.get("annee")
-            )
-            db.add(note)
-
-    db.commit()
-    return RegisterResponse(
-        message="Etudiant enregistre avec succes",
-        id_etudiant=etudiant.id_etudiant
-    )
-
-
 #Seance Prochaine
 @router.get("/seance")
 def get_session(
@@ -170,43 +108,6 @@ def get_absences(
     print(absences[0].seance.module)
     return absences
 
-# ─── photo ─────────────────────────────────
-
-@router.post("/{id_etudiant}/photo")
-def upload_photo(
-    id_etudiant: int,
-    authorization: str = Header(..., alias="Authorization"),
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db)
-):
-    data = get_token_data(authorization.split(" ")[1])
-    if int(data.get("sub")) != id_etudiant:
-        raise HTTPException(status_code=403, detail="Acces refuse")
-
-    # Vérifier que l'étudiant existe
-    etudiant = db.query(Etudiant).filter(Etudiant.id_etudiant == id_etudiant).first()
-    if not etudiant:
-        raise HTTPException(status_code=404, detail="Etudiant non trouve")
-
-    # Vérifier que c'est bien une image
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Fichier doit etre une image")
-
-    # Sauvegarder le fichier
-    ext = file.filename.split(".")[-1]
-    filename = f"etudiant_{id_etudiant}.{ext}"
-    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "photos")
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, filename)
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    # Sauvegarder le chemin en BDD
-    etudiant.photo_url = f"/uploads/photos/{filename}"
-    db.commit()
-
-    return {"message": "Photo uploadee avec succes", "photo_url": etudiant.photo_url}
 
 # ─── Infos normales (avec déchiffrement) ─────────────────
 @router.get("/{id_etudiant}", response_model=EtudiantOut)
@@ -239,7 +140,6 @@ def get_etudiant(
             "sexe": etudiant.sexe,
             "telephone": decrypt_field(etudiant.telephone, x_pin),
             "adresse": decrypt_field(etudiant.adresse, x_pin),
-            "photo_url": etudiant.photo_url
         }
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid PIN")

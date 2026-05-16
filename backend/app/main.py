@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routes import auth, etudiant, admin_db, authorize, detect, websocket_detect, gesture_pin
+from app.routes import pin_auth, etudiant, admin_db, authorize, detect, websocket_detect, gesture_pin
 import os
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -17,11 +17,6 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-
-# Dossier uploads accessible publiquement
-uploads_path = os.path.join(os.path.dirname(__file__), "..", "uploads")
-app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,7 +38,7 @@ def health_check():
         'message': 'Backend is running.',
     }
 
-app.include_router(auth.router)
+app.include_router(pin_auth.router)
 app.include_router(etudiant.router)
 app.include_router(admin_db.router)
 app.include_router(detect.router)

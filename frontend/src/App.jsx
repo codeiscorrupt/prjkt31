@@ -294,6 +294,21 @@ if (authState === 'success' && Number(authResult?.authorized) === 1) {
     sensitiveToken &&
     student;
 
+  useEffect(() => {
+    // Only monitor in data-dashboard
+    if (currentView !== 'data-dashboard' || !inSecureData) return;
+
+    const interval = setInterval(() => {
+      const absentForMs = Date.now() - lastFaceSeenAtRef.current;
+      
+      if (absentForMs >= 2000) {
+        console.log('[APP] Face absent for 2s in data-dashboard. Resetting session.');
+        resetAccessSession();
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(interval);
+  }, [currentView, inSecureData, resetAccessSession]);
 
   useEffect(() => {
   const shouldWatchPresence =

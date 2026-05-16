@@ -17,7 +17,6 @@ class Etudiant(Base):
     telephone = Column(Text)
     adresse = Column(Text)
     filiere = Column(String(100))
-    photo_url = Column(String(255), nullable=True)
     auth = relationship("Auth", back_populates="etudiant")
     biometrie = relationship("Biometrie", back_populates="etudiant")
     absences = relationship("Absence", back_populates="etudiant")
